@@ -1,0 +1,37 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://entities/resource_node.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/craftpix_rocks/rock_b.png" id="2"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="3"]
+[ext_resource type="Texture2D" path="res://assets/fx/shadow_blob.png" id="4"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_stone_b"]
+diffuse_texture = ExtResource("2")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_stone_b"]
+shader = ExtResource("3")
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_stone_b"]
+size = Vector2(22, 22)
+
+[node name="StoneNodeB" type="StaticBody2D"]
+script = ExtResource("1")
+resource_id = "pedra"
+hits_to_deplete = 4
+amount_per_hit = 1
+
+[node name="ShadowBlob" type="Sprite2D" parent="."]
+texture = ExtResource("4")
+position = Vector2(0, 12)
+scale = Vector2(0.42, 0.32)
+modulate = Color(1, 1, 1, 0.6)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_stone_b")
+texture = SubResource("CanvasTexture_stone_b")
+scale = Vector2(0.5, 0.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_stone_b")
+
+[node name="SfxPlayer" type="AudioStreamPlayer2D" parent="."]

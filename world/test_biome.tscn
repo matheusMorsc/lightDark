@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=34 format=3]
 
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://entities/enemy.tscn" id="2"]
@@ -20,6 +20,19 @@
 [ext_resource type="PackedScene" path="res://entities/tombstone_round.tscn" id="18"]
 [ext_resource type="PackedScene" path="res://entities/campfire.tscn" id="19"]
 [ext_resource type="PackedScene" path="res://entities/floor_torch.tscn" id="20"]
+[ext_resource type="PackedScene" path="res://entities/stone_node_a.tscn" id="21"]
+[ext_resource type="PackedScene" path="res://entities/stone_node_b.tscn" id="22"]
+[ext_resource type="PackedScene" path="res://entities/stone_node_c.tscn" id="23"]
+[ext_resource type="PackedScene" path="res://entities/decor/mushroom_a.tscn" id="24"]
+[ext_resource type="PackedScene" path="res://entities/decor/mushroom_b.tscn" id="25"]
+[ext_resource type="PackedScene" path="res://entities/decor/dragon_bones.tscn" id="26"]
+[ext_resource type="PackedScene" path="res://entities/decor/cave_entrance_decor.tscn" id="27"]
+[ext_resource type="PackedScene" path="res://entities/decor/fern_tree.tscn" id="28"]
+[ext_resource type="PackedScene" path="res://entities/decor/ruins_a.tscn" id="29"]
+[ext_resource type="PackedScene" path="res://entities/decor/ruins_b.tscn" id="30"]
+[ext_resource type="PackedScene" path="res://entities/decor/ruins_c.tscn" id="31"]
+[ext_resource type="PackedScene" path="res://entities/decor/eye_plant.tscn" id="32"]
+[ext_resource type="PackedScene" path="res://entities/decor/cursed_bones.tscn" id="33"]
 
 [node name="TestBiome" type="Node2D"]
 
@@ -237,6 +250,81 @@ position = Vector2(500, 250)
 
 [node name="FloorTorch4" parent="." instance=ExtResource("20")]
 position = Vector2(-420, 100)
+
+[node name="StoneNodeA1" parent="." instance=ExtResource("21")]
+position = Vector2(620, -300)
+
+[node name="StoneNodeB1" parent="." instance=ExtResource("22")]
+position = Vector2(-600, -250)
+
+[node name="StoneNodeC1" parent="." instance=ExtResource("23")]
+position = Vector2(200, 550)
+
+[node name="StoneNodeA2" parent="." instance=ExtResource("21")]
+position = Vector2(-150, -550)
+
+[node name="StoneNodeB2" parent="." instance=ExtResource("22")]
+position = Vector2(680, 150)
+
+[node name="StoneNodeC2" parent="." instance=ExtResource("23")]
+position = Vector2(-450, 550)
+
+[node name="StoneNodeA3" parent="." instance=ExtResource("21")]
+position = Vector2(50, -350)
+
+[node name="RuinsA1" parent="." instance=ExtResource("29")]
+position = Vector2(-520, -560)
+
+[node name="RuinsB1" parent="." instance=ExtResource("30")]
+position = Vector2(-460, -540)
+
+[node name="RuinsA2" parent="." instance=ExtResource("29")]
+position = Vector2(-400, -580)
+
+[node name="RuinsB2" parent="." instance=ExtResource("30")]
+position = Vector2(-540, -480)
+
+[node name="RuinsC1" parent="." instance=ExtResource("31")]
+position = Vector2(-430, -500)
+
+[node name="EyePlant1" parent="." instance=ExtResource("32")]
+position = Vector2(720, 430)
+
+[node name="EyePlant2" parent="." instance=ExtResource("32")]
+position = Vector2(760, 480)
+
+[node name="CursedBones1" parent="." instance=ExtResource("33")]
+position = Vector2(700, 470)
+
+[node name="CursedBones2" parent="." instance=ExtResource("33")]
+position = Vector2(750, 420)
+
+[node name="CursedBones3" parent="." instance=ExtResource("33")]
+position = Vector2(780, 500)
+
+[node name="DragonBones1" parent="." instance=ExtResource("26")]
+position = Vector2(-700, -500)
+
+[node name="CaveEntranceDecor1" parent="." instance=ExtResource("27")]
+position = Vector2(700, -550)
+
+[node name="CaveEntranceDecor2" parent="." instance=ExtResource("27")]
+position = Vector2(-700, 550)
+
+[node name="FernTree1" parent="." instance=ExtResource("28")]
+position = Vector2(650, 600)
+
+[node name="FernTree2" parent="." instance=ExtResource("28")]
+position = Vector2(-650, 600)
+
+[node name="FernTree3" parent="." instance=ExtResource("28")]
+position = Vector2(780, -400)
+
+[node name="MushroomDecorA1" parent="." instance=ExtResource("24")]
+position = Vector2(150, -500)
+
+[node name="MushroomDecorB1" parent="." instance=ExtResource("25")]
+position = Vector2(-250, -450)
 
 [node name="PostProcess" type="CanvasLayer" parent="."]
 layer = 5

@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_rocky_area/cave_entrance.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_caveentrancedecor"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_caveentrancedecor"]
+shader = ExtResource("2")
+
+[node name="CaveEntranceDecor" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_caveentrancedecor")
+texture = SubResource("CanvasTexture_caveentrancedecor")
+scale = Vector2(0.55, 0.55)

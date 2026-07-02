@@ -19,4 +19,10 @@ separation = Vector2i(1, 1)
 18:17/0 = 0
 
 [sub_resource type="TileSet" id="TileSet_cave"]
-tile_
+tile_size = Vector2i(16, 16)
+sources/0 = SubResource("TileSetAtlasSource_cave")
+
+[node name="CaveFloor" type="TileMapLayer"]
+material = SubResource("ShaderMaterial_cave_floor")
+tile_set = SubResource("TileSet_cave")
+script = ExtResource("2")

@@ -8,6 +8,10 @@
 
 config_version=5
 
+[addons]
+
+ss2d/version="3.3.1"
+
 [application]
 
 config/name="Light in the dark"
@@ -19,8 +23,83 @@ config/icon="res://icon.svg"
 
 GameState="*res://autoload/game_state.gd"
 PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
-LitManager="*res://addons/lit/runtime/lit_manager.gd"
+LitManager="*uid://brf2hvdtyyw3q"
 
 [display]
 
-window/stretch/m
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/lit/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/rmsmartshape/plugin.cfg")
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+rendering_device/driver.windows="d3d12"
+
+[shader_globals]
+
+lit_light_data={
+"filter": "nearest",
+"repeat": "disable",
+"type": "sampler2D",
+"value": ""
+}
+lit_light_count={
+"type": "int",
+"value": 0
+}
+lit_viewport_size={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
+lit_canvas_scale={
+"type": "float",
+"value": 1.0
+}
+lit_ambient_color={
+"type": "color",
+"value": Color(1, 1, 1, 1)
+}
+lit_ambient_energy={
+"type": "float",
+"value": 1.0
+}
+lit_shadow_steps_max={
+"type": "int",
+"value": 64
+}
+lit_shadow_step_scaling={
+"type": "bool",
+"value": false
+}
+lit_tile_size={
+"type": "int",
+"value": 64
+}
+lit_tile_grid={
+"type": "ivec2",
+"value": Vector2i(0, 0)
+}
+lit_directional_count={
+"type": "int",
+"value": 0
+}
+lit_tile_headers={
+"filter": "nearest",
+"repeat": "disable",
+"type": "sampler2D",
+"value": ""
+}
+lit_tile_indices={
+"filter": "nearest",
+"repeat": "disable",
+"type": "sampler2D",
+"value": ""
+}

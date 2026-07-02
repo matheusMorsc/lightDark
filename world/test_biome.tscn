@@ -34,4 +34,9 @@ position = Vector2(100, 100)
 position = Vector2(-150, -80)
 
 [node name="ResourceNode3" parent="." instance=ExtResource("3")]
-posi
+position = Vector2(-250, 250)
+
+[node name="ResourceNode4" parent="." instance=ExtResource("3")]
+position = Vector2(350, -200)
+
+[node name="HUD" parent="." instance=ExtResource("4")]

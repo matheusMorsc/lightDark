@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://entities/enemy.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/kenney_roguelike_characters/enemy_creature_fast.png" id="2"]
 [ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="3"]
+[ext_resource type="Texture2D" path="res://assets/fx/shadow_blob.png" id="4"]
 
 [sub_resource type="CanvasTexture" id="CanvasTexture_enemy_fast"]
 diffuse_texture = ExtResource("2")
@@ -21,6 +22,12 @@ contact_damage = 6.0
 detection_radius = 200.0
 attack_radius = 32.0
 attack_interval = 0.6
+
+[node name="ShadowBlob" type="Sprite2D" parent="."]
+texture = ExtResource("4")
+position = Vector2(0, 12)
+scale = Vector2(0.42, 0.32)
+modulate = Color(1, 1, 1, 0.65)
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_enemy_fast")

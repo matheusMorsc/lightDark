@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="2"]
@@ -6,6 +6,8 @@
 [ext_resource type="Texture2D" path="res://assets/kenney_roguelike_characters/Spritesheet/roguelikeChar_transparent.png" id="4"]
 [ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="5"]
 [ext_resource type="Script" path="res://addons/lit/nodes/lit_point_light_2d.gd" id="6"]
+[ext_resource type="Texture2D" path="res://assets/fx/shadow_blob.png" id="7"]
+[ext_resource type="PackedScene" path="res://world/light_shaft.tscn" id="8"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_player"]
 atlas = ExtResource("4")
@@ -26,6 +28,12 @@ radius = 48.0
 [node name="Player" type="CharacterBody2D"]
 script = ExtResource("1")
 
+[node name="ShadowBlob" type="Sprite2D" parent="."]
+texture = ExtResource("7")
+position = Vector2(0, 14)
+scale = Vector2(0.5, 0.38)
+modulate = Color(1, 1, 1, 0.65)
+
 [node name="Sprite2D" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_player")
 texture = SubResource("CanvasTexture_player")
@@ -41,6 +49,8 @@ height = 24.0
 shadow_enabled = true
 shadow_color = Color(0, 0, 0, 1)
 shadow_hardness = 0.35
+
+[node name="LightShafts" parent="Torch" instance=ExtResource("8")]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_body")

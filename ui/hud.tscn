@@ -56,7 +56,7 @@ grow_vertical = 2
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 234.0
-offset_bottom = 400.0
+offset_bottom = 64.0
 theme_override_constants/separation = 8
 
 [node name="HealthBar" type="ProgressBar" parent="Control/VBoxContainer"]
@@ -75,86 +75,99 @@ max_value = 100.0
 value = 100.0
 show_percentage = false
 
-[node name="InventoryPanel" type="PanelContainer" parent="Control/VBoxContainer"]
+[node name="InventoryPanel" type="PanelContainer" parent="Control"]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -498.0
+offset_top = -114.0
+offset_right = 498.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_bar_bg")
 
-[node name="VBox" type="VBoxContainer" parent="Control/VBoxContainer/InventoryPanel"]
+[node name="VBox" type="VBoxContainer" parent="Control/InventoryPanel"]
+alignment = 1
+theme_override_constants/separation = 6
 
-[node name="TitleRow" type="HBoxContainer" parent="Control/VBoxContainer/InventoryPanel/VBox"]
+[node name="TitleRow" type="HBoxContainer" parent="Control/InventoryPanel/VBox"]
+alignment = 1
 
-[node name="ChestIcon" type="TextureRect" parent="Control/VBoxContainer/InventoryPanel/VBox/TitleRow"]
+[node name="ChestIcon" type="TextureRect" parent="Control/InventoryPanel/VBox/TitleRow"]
 custom_minimum_size = Vector2(22, 22)
 texture = ExtResource("2")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="TitleLabel" type="Label" parent="Control/VBoxContainer/InventoryPanel/VBox/TitleRow"]
+[node name="TitleLabel" type="Label" parent="Control/InventoryPanel/VBox/TitleRow"]
 text = " Inventário (arraste os slots pra reorganizar)"
-autowrap_mode = 2
 
-[node name="SlotsGrid" type="GridContainer" parent="Control/VBoxContainer/InventoryPanel/VBox"]
-columns = 4
+[node name="SlotsGrid" type="GridContainer" parent="Control/InventoryPanel/VBox"]
+size_flags_horizontal = 4
+columns = 20
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 4
 
-[node name="Slot0" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot0" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 0
 
-[node name="Slot1" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot1" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 1
 
-[node name="Slot2" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot2" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 2
 
-[node name="Slot3" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot3" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 3
 
-[node name="Slot4" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot4" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 4
 
-[node name="Slot5" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot5" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 5
 
-[node name="Slot6" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot6" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 6
 
-[node name="Slot7" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot7" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 7
 
-[node name="Slot8" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot8" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 8
 
-[node name="Slot9" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot9" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 9
 
-[node name="Slot10" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot10" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 10
 
-[node name="Slot11" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot11" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 11
 
-[node name="Slot12" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot12" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 12
 
-[node name="Slot13" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot13" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 13
 
-[node name="Slot14" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot14" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 14
 
-[node name="Slot15" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot15" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 15
 
-[node name="Slot16" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot16" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 16
 
-[node name="Slot17" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot17" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 17
 
-[node name="Slot18" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot18" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 18
 
-[node name="Slot19" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+[node name="Slot19" parent="Control/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 19
 
 [node name="TutorialPanel" type="PanelContainer" parent="Control"]

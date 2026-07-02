@@ -4,7 +4,7 @@ extends CanvasLayer
 
 @onready var health_bar: ProgressBar = $Control/VBoxContainer/HealthBar
 @onready var hunger_bar: ProgressBar = $Control/VBoxContainer/HungerBar
-@onready var slots_grid: GridContainer = $Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid
+@onready var slots_grid: GridContainer = $Control/InventoryPanel/VBox/SlotsGrid
 @onready var tutorial_panel: PanelContainer = $Control/TutorialPanel
 @onready var death_screen: Control = $Control/DeathScreen
 @onready var crafting_panel: PanelContainer = $Control/CraftingPanel

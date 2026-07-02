@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://entities/enemy.tscn" id="2"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://addons/lit/nodes/lit_canvas_modulate.gd" id="6"]
 [ext_resource type="PackedScene" path="res://entities/cave_wall.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://world/organic_wall.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://entities/ore_node.tscn" id="9"]
 
 [node name="TestBiome" type="Node2D"]
 
@@ -69,5 +70,14 @@ position = Vector2(-380, -180)
 rng_seed = 42
 base_radius = 75.0
 num_points = 8
+
+[node name="OreNode1" parent="." instance=ExtResource("9")]
+position = Vector2(300, 100)
+
+[node name="OreNode2" parent="." instance=ExtResource("9")]
+position = Vector2(-50, 200)
+
+[node name="OreNode3" parent="." instance=ExtResource("9")]
+position = Vector2(0, -250)
 
 [node name="HUD" parent="." instance=ExtResource("4")]

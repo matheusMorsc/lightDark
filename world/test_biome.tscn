@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://entities/enemy.tscn" id="2"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://world/organic_wall.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://entities/ore_node.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://entities/enemy_fast.tscn" id="10"]
+[ext_resource type="Script" path="res://addons/lit/nodes/lit_post_process.gd" id="11"]
 
 [node name="TestBiome" type="Node2D"]
 
@@ -136,5 +137,23 @@ position = Vector2(-300, 400)
 
 [node name="OreNode6" parent="." instance=ExtResource("9")]
 position = Vector2(150, -450)
+
+[node name="PostProcess" type="CanvasLayer" parent="."]
+layer = 5
+script = ExtResource("11")
+grade_enabled = true
+saturation = 0.55
+contrast = 1.15
+outline_enabled = true
+outline_color = Color(0.05, 0.04, 0.06, 1)
+outline_thickness = 1.2
+outline_threshold = 0.08
+outline_strength = 0.75
+vignette_enabled = true
+vignette_strength = 0.35
+vignette_softness = 0.6
+grain_enabled = true
+grain_intensity = 0.04
+grain_size = 1.5
 
 [node name="HUD" parent="." instance=ExtResource("4")]

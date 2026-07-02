@@ -84,3 +84,40 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_tutorial_bg")
 text = "WASD / Setas: Mover\nEspaço: Atacar / Minerar\nE: Comer"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 20
+
+[node name="DeathScreen" type="Control" parent="Control"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="Control/DeathScreen"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.75)
+
+[node name="CenterContainer" type="CenterContainer" parent="Control/DeathScreen"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/DeathScreen/CenterContainer"]
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Control/DeathScreen/CenterContainer/VBoxContainer"]
+text = "Você morreu"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 48
+theme_override_colors/font_color = Color(0.85, 0.15, 0.15, 1)
+
+[node name="HintLabel" type="Label" parent="Control/DeathScreen/CenterContainer/VBoxContainer"]
+text = "Pressione R para reiniciar"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20

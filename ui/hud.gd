@@ -5,11 +5,18 @@ extends CanvasLayer
 @onready var hunger_bar: ProgressBar = $Control/VBoxContainer/HungerBar
 @onready var resources_label: Label = $Control/VBoxContainer/ResourcesLabel
 @onready var tutorial_panel: PanelContainer = $Control/TutorialPanel
+@onready var death_screen: Control = $Control/DeathScreen
 
 @export var tutorial_duration: float = 6.0
 @export var tutorial_fade_duration: float = 1.0
 
+var _restart_key_was_pressed: bool = false
+
 func _ready() -> void:
+	# Continua processando mesmo com a árvore pausada (necessário pra tela de
+	# morte funcionar e detectar a tecla de reiniciar).
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
 	GameState.health_changed.connect(_on_health_changed)
 	GameState.hunger_changed.connect(_on_hunger_changed)
 	GameState.resource_changed.connect(_on_resource_changed)
@@ -20,6 +27,19 @@ func _ready() -> void:
 	_update_resources_label()
 
 	get_tree().create_timer(tutorial_duration).timeout.connect(_hide_tutorial)
+
+func _process(_delta: float) -> void:
+	if not death_screen.visible:
+		return
+	var restart_pressed := Input.is_key_pressed(KEY_R)
+	if restart_pressed and not _restart_key_was_pressed:
+		_restart()
+	_restart_key_was_pressed = restart_pressed
+
+func _restart() -> void:
+	GameState.reset()
+	get_tree().paused = false
+	get_tree().reload_current_scene()
 
 func _hide_tutorial() -> void:
 	var tween := create_tween()
@@ -47,4 +67,5 @@ func _update_resources_label() -> void:
 	resources_label.text = "Recursos: " + ", ".join(parts)
 
 func _on_player_died() -> void:
-	resources_label.text += "\nVocê morreu! (reinicie a cena com F5 / botão de play)"
+	death_screen.visible = true
+	get_tree().paused = true

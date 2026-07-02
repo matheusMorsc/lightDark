@@ -19,6 +19,10 @@ config/icon="res://icon.svg"
 
 GameState="*res://autoload/game_state.gd"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/phantom_camera/plugin.cfg")
+
 [display]
 
 window/stretch/mode="canvas_items"
@@ -26,9 +30,3 @@ window/stretch/aspect="expand"
 
 [physics]
 
-3d/physics_engine="Jolt Physics"
-
-[rendering]
-
-rendering_device/driver.windows="d3d12"
-textures/canvas_textures/default_texture_filter=0

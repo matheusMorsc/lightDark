@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_rocky_area/statue_deer.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_statuedeer"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_statuedeer"]
+shader = ExtResource("2")
+
+[node name="StatueDeer" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_statuedeer")
+texture = SubResource("CanvasTexture_statuedeer")
+scale = Vector2(0.85, 0.85)

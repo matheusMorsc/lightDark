@@ -1,0 +1,31 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/kenney_roguelike_rpg/tree_pine.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_tree_pine"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tree_pine"]
+shader = ExtResource("2")
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tree_pine"]
+size = Vector2(12, 10)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_tree_pine"]
+polygon = PackedVector2Array(0, -24, 10, -4, 14, 8, -14, 8, -10, -4)
+
+[node name="TreePine" type="StaticBody2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_tree_pine")
+texture = SubResource("CanvasTexture_tree_pine")
+offset = Vector2(0, -6)
+scale = Vector2(2, 2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 6)
+shape = SubResource("RectangleShape2D_tree_pine")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="."]
+occluder = SubResource("OccluderPolygon2D_tree_pine")

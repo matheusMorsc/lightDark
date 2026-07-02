@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://entities/enemy.tscn" id="2"]
@@ -11,6 +11,15 @@
 [ext_resource type="PackedScene" path="res://entities/ore_node.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://entities/enemy_fast.tscn" id="10"]
 [ext_resource type="Script" path="res://addons/lit/nodes/lit_post_process.gd" id="11"]
+[ext_resource type="PackedScene" path="res://world/water_pool.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://entities/tree_round.tscn" id="13"]
+[ext_resource type="PackedScene" path="res://entities/tree_pine.tscn" id="14"]
+[ext_resource type="PackedScene" path="res://entities/bush.tscn" id="15"]
+[ext_resource type="PackedScene" path="res://entities/flower.tscn" id="16"]
+[ext_resource type="PackedScene" path="res://entities/tombstone_slab.tscn" id="17"]
+[ext_resource type="PackedScene" path="res://entities/tombstone_round.tscn" id="18"]
+[ext_resource type="PackedScene" path="res://entities/campfire.tscn" id="19"]
+[ext_resource type="PackedScene" path="res://entities/floor_torch.tscn" id="20"]
 
 [node name="TestBiome" type="Node2D"]
 
@@ -137,6 +146,97 @@ position = Vector2(-300, 400)
 
 [node name="OreNode6" parent="." instance=ExtResource("9")]
 position = Vector2(150, -450)
+
+[node name="WaterPool1" parent="." instance=ExtResource("12")]
+position = Vector2(700, 100)
+width = 5
+height = 4
+
+[node name="WaterPool2" parent="." instance=ExtResource("12")]
+position = Vector2(-700, -200)
+width = 6
+height = 4
+
+[node name="TreeRound1" parent="." instance=ExtResource("13")]
+position = Vector2(650, 250)
+
+[node name="TreeRound2" parent="." instance=ExtResource("13")]
+position = Vector2(-650, 400)
+
+[node name="TreeRound3" parent="." instance=ExtResource("13")]
+position = Vector2(250, 600)
+
+[node name="TreeRound4" parent="." instance=ExtResource("13")]
+position = Vector2(450, 550)
+
+[node name="TreePine1" parent="." instance=ExtResource("14")]
+position = Vector2(-250, -600)
+
+[node name="TreePine2" parent="." instance=ExtResource("14")]
+position = Vector2(700, -250)
+
+[node name="TreePine3" parent="." instance=ExtResource("14")]
+position = Vector2(-700, 150)
+
+[node name="TreePine4" parent="." instance=ExtResource("14")]
+position = Vector2(-450, -500)
+
+[node name="Bush1" parent="." instance=ExtResource("15")]
+position = Vector2(600, 350)
+
+[node name="Bush2" parent="." instance=ExtResource("15")]
+position = Vector2(-600, 300)
+
+[node name="Bush3" parent="." instance=ExtResource("15")]
+position = Vector2(300, -550)
+
+[node name="Bush4" parent="." instance=ExtResource("15")]
+position = Vector2(-300, 500)
+
+[node name="Flower1" parent="." instance=ExtResource("16")]
+position = Vector2(120, 350)
+
+[node name="Flower2" parent="." instance=ExtResource("16")]
+position = Vector2(-200, 350)
+
+[node name="Flower3" parent="." instance=ExtResource("16")]
+position = Vector2(400, 150)
+
+[node name="Flower4" parent="." instance=ExtResource("16")]
+position = Vector2(-400, -100)
+
+[node name="Flower5" parent="." instance=ExtResource("16")]
+position = Vector2(550, -450)
+
+[node name="Flower6" parent="." instance=ExtResource("16")]
+position = Vector2(-550, 450)
+
+[node name="TombstoneSlab1" parent="." instance=ExtResource("17")]
+position = Vector2(750, 300)
+
+[node name="TombstoneRound1" parent="." instance=ExtResource("18")]
+position = Vector2(790, 340)
+
+[node name="TombstoneSlab2" parent="." instance=ExtResource("17")]
+position = Vector2(750, 390)
+
+[node name="Campfire1" parent="." instance=ExtResource("19")]
+position = Vector2(200, 200)
+
+[node name="Campfire2" parent="." instance=ExtResource("19")]
+position = Vector2(-320, -320)
+
+[node name="FloorTorch1" parent="." instance=ExtResource("20")]
+position = Vector2(0, -150)
+
+[node name="FloorTorch2" parent="." instance=ExtResource("20")]
+position = Vector2(-200, 100)
+
+[node name="FloorTorch3" parent="." instance=ExtResource("20")]
+position = Vector2(500, 250)
+
+[node name="FloorTorch4" parent="." instance=ExtResource("20")]
+position = Vector2(-420, 100)
 
 [node name="PostProcess" type="CanvasLayer" parent="."]
 layer = 5

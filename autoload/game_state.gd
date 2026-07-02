@@ -1,14 +1,21 @@
 extends Node
 ## GameState (autoload)
-## Guarda o estado global e simples do protótipo: vida, fome e recursos coletados.
-## Qualquer script pode acessar isso globalmente como "GameState.xxx".
+## Guarda o estado global do protótipo: vida, fome e o inventário do
+## jogador. O inventário é uma grade real de slots (não mais um Dictionary
+## de contadores) — cada slot guarda {"item_id": String, "count": int} ou
+## null se vazio. Empilha automaticamente até o máximo de cada item
+## (ver ItemDB) e serve tanto de "mochila" quanto de "estoque global": não
+## existe baú físico, os recursos coletados vão direto pra essa grade.
 
 signal health_changed(current: float, max_value: float)
 signal hunger_changed(current: float, max_value: float)
 signal resource_changed(resource_name: String, total: int)
+signal inventory_changed
 signal player_died
 signal player_damaged(amount: float)
 signal recipe_crafted(recipe_id: String)
+
+const INVENTORY_SIZE: int = 20
 
 @export var max_health: float = 100.0
 @export var max_hunger: float = 100.0
@@ -17,8 +24,11 @@ signal recipe_crafted(recipe_id: String)
 
 var health: float = max_health
 var hunger: float = max_hunger
-var resources: Dictionary = {} # ex: {"comida": 3}
 var is_dead: bool = false
+
+## Array de tamanho fixo INVENTORY_SIZE. Cada slot é null (vazio) ou
+## {"item_id": String, "count": int}.
+var inventory: Array = []
 
 func _ready() -> void:
 	reset()
@@ -51,25 +61,98 @@ func eat(amount: float) -> void:
 	hunger = min(max_hunger, hunger + amount)
 	hunger_changed.emit(hunger, max_hunger)
 
-func add_resource(resource_name: String, amount: int = 1) -> void:
-	resources[resource_name] = resources.get(resource_name, 0) + amount
-	resource_changed.emit(resource_name, resources[resource_name])
+## Soma unidades de um item ao inventário: preenche pilhas existentes desse
+## item primeiro, depois usa slots vazios. Se não houver espaço nenhum, o
+## excedente é perdido (retorna quanto de fato coube).
+func add_resource(item_id: String, amount: int = 1) -> int:
+	var max_stack: int = ItemDB.get_max_stack(item_id)
+	var remaining: int = amount
 
-## Tenta remover `amount` unidades de um recurso. Retorna true e desconta se
-## houver o suficiente; retorna false sem alterar nada caso contrário.
-func remove_resource(resource_name: String, amount: int = 1) -> bool:
-	var current: int = resources.get(resource_name, 0)
-	if current < amount:
+	for i in inventory.size():
+		if remaining <= 0:
+			break
+		var slot = inventory[i]
+		if slot != null and slot.item_id == item_id and slot.count < max_stack:
+			var space: int = max_stack - slot.count
+			var add_amount: int = min(space, remaining)
+			slot.count += add_amount
+			remaining -= add_amount
+
+	for i in inventory.size():
+		if remaining <= 0:
+			break
+		if inventory[i] == null:
+			var add_amount: int = min(max_stack, remaining)
+			inventory[i] = {"item_id": item_id, "count": add_amount}
+			remaining -= add_amount
+
+	var added: int = amount - remaining
+	if added > 0:
+		resource_changed.emit(item_id, get_total(item_id))
+		inventory_changed.emit()
+	return added
+
+## Tenta remover `amount` unidades de um item. Retorna true e desconta
+## (varrendo slots até zerar a quantia) se houver o suficiente no total;
+## retorna false sem alterar nada caso contrário (atômico).
+func remove_resource(item_id: String, amount: int = 1) -> bool:
+	if get_total(item_id) < amount:
 		return false
-	resources[resource_name] = current - amount
-	resource_changed.emit(resource_name, resources[resource_name])
+
+	var remaining: int = amount
+	for i in inventory.size():
+		if remaining <= 0:
+			break
+		var slot = inventory[i]
+		if slot != null and slot.item_id == item_id:
+			var take: int = min(slot.count, remaining)
+			slot.count -= take
+			remaining -= take
+			if slot.count <= 0:
+				inventory[i] = null
+
+	resource_changed.emit(item_id, get_total(item_id))
+	inventory_changed.emit()
 	return true
 
-## true se houver recursos suficientes para cobrir todos os custos de `costs`
+## Soma quantas unidades de um item existem no inventário inteiro.
+func get_total(item_id: String) -> int:
+	var total := 0
+	for slot in inventory:
+		if slot != null and slot.item_id == item_id:
+			total += slot.count
+	return total
+
+## Troca o conteúdo de dois slots (drag-and-drop na UI). Se os dois slots
+## tiverem o mesmo item, empilha em vez de trocar (até o máximo, sobra fica
+## no slot de origem) — comportamento padrão de inventário de grade.
+func swap_slots(a: int, b: int) -> void:
+	if a == b or a < 0 or b < 0 or a >= inventory.size() or b >= inventory.size():
+		return
+	var slot_a = inventory[a]
+	var slot_b = inventory[b]
+
+	if slot_a != null and slot_b != null and slot_a.item_id == slot_b.item_id:
+		var max_stack: int = ItemDB.get_max_stack(slot_b.item_id)
+		var space: int = max_stack - slot_b.count
+		if space > 0:
+			var moved: int = min(space, slot_a.count)
+			slot_b.count += moved
+			slot_a.count -= moved
+			if slot_a.count <= 0:
+				inventory[a] = null
+			inventory_changed.emit()
+			return
+
+	inventory[a] = slot_b
+	inventory[b] = slot_a
+	inventory_changed.emit()
+
+## true se houver itens suficientes para cobrir todos os custos de `costs`
 ## (ex: {"minerio": 3, "comida": 2}), sem alterar nada.
 func can_afford(costs: Dictionary) -> bool:
-	for resource_name in costs:
-		if resources.get(resource_name, 0) < int(costs[resource_name]):
+	for item_id in costs:
+		if get_total(item_id) < int(costs[item_id]):
 			return false
 	return true
 
@@ -78,15 +161,17 @@ func can_afford(costs: Dictionary) -> bool:
 func craft(recipe_id: String, costs: Dictionary) -> bool:
 	if not can_afford(costs):
 		return false
-	for resource_name in costs:
-		remove_resource(resource_name, int(costs[resource_name]))
+	for item_id in costs:
+		remove_resource(item_id, int(costs[item_id]))
 	recipe_crafted.emit(recipe_id)
 	return true
 
 func reset() -> void:
 	health = max_health
 	hunger = max_hunger
-	resources.clear()
 	is_dead = false
+	inventory = []
+	inventory.resize(INVENTORY_SIZE)
 	health_changed.emit(health, max_health)
 	hunger_changed.emit(hunger, max_hunger)
+	inventory_changed.emit()

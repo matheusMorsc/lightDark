@@ -1,10 +1,10 @@
 extends CanvasLayer
-## HUD simples: barra de vida, barra de fome e contador de recursos.
+## HUD: barras de vida/fome, grade de inventário (drag-and-drop) e painel
+## de crafting.
 
 @onready var health_bar: ProgressBar = $Control/VBoxContainer/HealthBar
 @onready var hunger_bar: ProgressBar = $Control/VBoxContainer/HungerBar
-@onready var food_count_label: Label = $Control/VBoxContainer/InventoryPanel/VBox/SlotsRow/FoodSlot/HBox/CountLabel
-@onready var ore_count_label: Label = $Control/VBoxContainer/InventoryPanel/VBox/SlotsRow/OreSlot/HBox/CountLabel
+@onready var slots_grid: GridContainer = $Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid
 @onready var tutorial_panel: PanelContainer = $Control/TutorialPanel
 @onready var death_screen: Control = $Control/DeathScreen
 @onready var crafting_panel: PanelContainer = $Control/CraftingPanel
@@ -16,12 +16,14 @@ extends CanvasLayer
 const RECIPES := [
 	{"id": "ferramenta", "name": "Ferramenta Reforçada", "costs": {"minerio": 3, "comida": 2}},
 	{"id": "refeicao", "name": "Refeição Reforçada", "costs": {"comida": 5}},
+	{"id": "fortificacao", "name": "Fortificação", "costs": {"pedra": 4}},
 ]
-const RECIPE_KEYS := [KEY_1, KEY_2]
+const RECIPE_KEYS := [KEY_1, KEY_2, KEY_3]
 
 var _restart_key_was_pressed: bool = false
 var _craft_menu_key_was_pressed: bool = false
-var _craft_slot_key_was_pressed: Array[bool] = [false, false]
+var _craft_slot_key_was_pressed: Array[bool] = [false, false, false]
+var _slot_nodes: Array = []
 
 func _ready() -> void:
 	# Continua processando mesmo com a árvore pausada (necessário pra tela de
@@ -30,8 +32,10 @@ func _ready() -> void:
 
 	GameState.health_changed.connect(_on_health_changed)
 	GameState.hunger_changed.connect(_on_hunger_changed)
-	GameState.resource_changed.connect(_on_resource_changed)
+	GameState.inventory_changed.connect(_update_inventory)
 	GameState.player_died.connect(_on_player_died)
+
+	_slot_nodes = slots_grid.get_children()
 
 	_on_health_changed(GameState.health, GameState.max_health)
 	_on_hunger_changed(GameState.hunger, GameState.max_hunger)
@@ -76,6 +80,8 @@ func _try_craft(index: int) -> void:
 		if recipe.id == "refeicao":
 			GameState.max_health += 20.0
 			GameState.heal(20.0)
+		elif recipe.id == "fortificacao":
+			GameState.max_health += 15.0
 		crafting_status_label.text = "Craftado: %s!" % recipe.name
 	else:
 		crafting_status_label.text = "Recursos insuficientes para %s." % recipe.name
@@ -93,12 +99,13 @@ func _on_hunger_changed(current: float, max_value: float) -> void:
 	hunger_bar.max_value = max_value
 	hunger_bar.value = current
 
-func _on_resource_changed(_resource_name: String, _total: int) -> void:
-	_update_inventory()
-
+## Redesenha a grade inteira a partir de GameState.inventory — chamado toda
+## vez que qualquer slot muda (coleta, craft, comer, arrastar).
 func _update_inventory() -> void:
-	food_count_label.text = "x%d" % GameState.resources.get("comida", 0)
-	ore_count_label.text = "x%d" % GameState.resources.get("minerio", 0)
+	for i in _slot_nodes.size():
+		if i >= GameState.inventory.size():
+			break
+		_slot_nodes[i].set_slot_data(GameState.inventory[i])
 
 func _on_player_died() -> void:
 	death_screen.visible = true

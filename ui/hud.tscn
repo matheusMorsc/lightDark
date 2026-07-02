@@ -1,10 +1,11 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://ui/hud.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/ui/inventory_chest_icon.png" id="2"]
-[ext_resource type="Texture2D" path="res://assets/ui/inventory_slot_frame.png" id="3"]
-[ext_resource type="Texture2D" path="res://assets/kenney_pixel_platformer/Tiles/tile_0030_transparent.png" id="4"]
-[ext_resource type="Texture2D" path="res://assets/kenney_roguelike_caves/gem_ore.png" id="5"]
+[ext_resource type="PackedScene" path="res://ui/inventory_slot.tscn" id="3"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/recipe_tool.png" id="4"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/recipe_meal.png" id="5"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/pedra_icon.png" id="6"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_bg"]
 bg_color = Color(0.08, 0.08, 0.1, 0.85)
@@ -22,13 +23,6 @@ bg_color = Color(0.93, 0.6, 0.1, 1)
 
 [sub_resource type="Theme" id="Theme_hud"]
 default_font_color = Color(1, 1, 1, 1)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_slot_frame"]
-texture = ExtResource("3")
-texture_margin_left = 16.0
-texture_margin_top = 16.0
-texture_margin_right = 16.0
-texture_margin_bottom = 16.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tutorial_bg"]
 bg_color = Color(0.05, 0.05, 0.07, 0.75)
@@ -61,8 +55,8 @@ grow_vertical = 2
 [node name="VBoxContainer" type="VBoxContainer" parent="Control"]
 offset_left = 16.0
 offset_top = 16.0
-offset_right = 216.0
-offset_bottom = 220.0
+offset_right = 234.0
+offset_bottom = 400.0
 theme_override_constants/separation = 8
 
 [node name="HealthBar" type="ProgressBar" parent="Control/VBoxContainer"]
@@ -95,46 +89,73 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="TitleLabel" type="Label" parent="Control/VBoxContainer/InventoryPanel/VBox/TitleRow"]
-text = " Inventário"
+text = " Inventário (arraste os slots pra reorganizar)"
+autowrap_mode = 2
 
-[node name="SlotsRow" type="HBoxContainer" parent="Control/VBoxContainer/InventoryPanel/VBox"]
-theme_override_constants/separation = 8
+[node name="SlotsGrid" type="GridContainer" parent="Control/VBoxContainer/InventoryPanel/VBox"]
+columns = 4
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
 
-[node name="FoodSlot" type="PanelContainer" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsRow"]
-theme_override_styles/panel = SubResource("StyleBoxTexture_slot_frame")
+[node name="Slot0" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 0
 
-[node name="HBox" type="HBoxContainer" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsRow/FoodSlot"]
+[node name="Slot1" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 1
 
-[node name="Icon" type="TextureRect" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsRow/FoodSlot/HBox"]
-custom_minimum_size = Vector2(20, 20)
-texture = ExtResource("4")
-expand_mode = 1
-stretch_mode = 5
+[node name="Slot2" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 2
 
-[node name="CountLabel" type="Label" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsRow/FoodSlot/HBox"]
-text = "0"
-theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
-theme_override_font_sizes/font_size = 18
-theme_override_constants/outline_size = 3
-theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+[node name="Slot3" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 3
 
-[node name="OreSlot" type="PanelContainer" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsRow"]
-theme_override_styles/panel = SubResource("StyleBoxTexture_slot_frame")
+[node name="Slot4" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 4
 
-[node name="HBox" type="HBoxContainer" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsRow/OreSlot"]
+[node name="Slot5" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 5
 
-[node name="Icon" type="TextureRect" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsRow/OreSlot/HBox"]
-custom_minimum_size = Vector2(20, 20)
-texture = ExtResource("5")
-expand_mode = 1
-stretch_mode = 5
+[node name="Slot6" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 6
 
-[node name="CountLabel" type="Label" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsRow/OreSlot/HBox"]
-text = "0"
-theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
-theme_override_font_sizes/font_size = 18
-theme_override_constants/outline_size = 3
-theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+[node name="Slot7" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 7
+
+[node name="Slot8" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 8
+
+[node name="Slot9" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 9
+
+[node name="Slot10" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 10
+
+[node name="Slot11" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 11
+
+[node name="Slot12" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 12
+
+[node name="Slot13" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 13
+
+[node name="Slot14" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 14
+
+[node name="Slot15" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 15
+
+[node name="Slot16" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 16
+
+[node name="Slot17" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 17
+
+[node name="Slot18" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 18
+
+[node name="Slot19" parent="Control/VBoxContainer/InventoryPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 19
 
 [node name="TutorialPanel" type="PanelContainer" parent="Control"]
 anchor_left = 0.5
@@ -206,11 +227,41 @@ text = "Crafting (C para fechar)"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 22
 
-[node name="Recipe1Label" type="Label" parent="Control/CraftingPanel/VBoxContainer"]
+[node name="Recipe1Row" type="HBoxContainer" parent="Control/CraftingPanel/VBoxContainer"]
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="Control/CraftingPanel/VBoxContainer/Recipe1Row"]
+custom_minimum_size = Vector2(18, 18)
+texture = ExtResource("4")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="Control/CraftingPanel/VBoxContainer/Recipe1Row"]
 text = "[1] Ferramenta Reforçada — 3 minério + 2 comida (+5 dano)"
 
-[node name="Recipe2Label" type="Label" parent="Control/CraftingPanel/VBoxContainer"]
+[node name="Recipe2Row" type="HBoxContainer" parent="Control/CraftingPanel/VBoxContainer"]
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="Control/CraftingPanel/VBoxContainer/Recipe2Row"]
+custom_minimum_size = Vector2(18, 18)
+texture = ExtResource("5")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="Control/CraftingPanel/VBoxContainer/Recipe2Row"]
 text = "[2] Refeição Reforçada — 5 comida (+20 vida máxima e cura)"
+
+[node name="Recipe3Row" type="HBoxContainer" parent="Control/CraftingPanel/VBoxContainer"]
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="Control/CraftingPanel/VBoxContainer/Recipe3Row"]
+custom_minimum_size = Vector2(18, 18)
+texture = ExtResource("6")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="Control/CraftingPanel/VBoxContainer/Recipe3Row"]
+text = "[3] Fortificação — 4 pedra (+15 vida máxima)"
 
 [node name="StatusLabel" type="Label" parent="Control/CraftingPanel/VBoxContainer"]
 text = ""

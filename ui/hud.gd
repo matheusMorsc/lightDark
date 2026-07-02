@@ -97,8 +97,8 @@ func _on_resource_changed(_resource_name: String, _total: int) -> void:
 	_update_inventory()
 
 func _update_inventory() -> void:
-	food_count_label.text = str(GameState.resources.get("comida", 0))
-	ore_count_label.text = str(GameState.resources.get("minerio", 0))
+	food_count_label.text = "x%d" % GameState.resources.get("comida", 0)
+	ore_count_label.text = "x%d" % GameState.resources.get("minerio", 0)
 
 func _on_player_died() -> void:
 	death_screen.visible = true

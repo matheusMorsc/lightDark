@@ -3,7 +3,8 @@ extends CanvasLayer
 
 @onready var health_bar: ProgressBar = $Control/VBoxContainer/HealthBar
 @onready var hunger_bar: ProgressBar = $Control/VBoxContainer/HungerBar
-@onready var resources_label: Label = $Control/VBoxContainer/ResourcesLabel
+@onready var food_count_label: Label = $Control/VBoxContainer/InventoryPanel/VBox/SlotsRow/FoodSlot/HBox/CountLabel
+@onready var ore_count_label: Label = $Control/VBoxContainer/InventoryPanel/VBox/SlotsRow/OreSlot/HBox/CountLabel
 @onready var tutorial_panel: PanelContainer = $Control/TutorialPanel
 @onready var death_screen: Control = $Control/DeathScreen
 @onready var crafting_panel: PanelContainer = $Control/CraftingPanel
@@ -34,7 +35,7 @@ func _ready() -> void:
 
 	_on_health_changed(GameState.health, GameState.max_health)
 	_on_hunger_changed(GameState.hunger, GameState.max_hunger)
-	_update_resources_label()
+	_update_inventory()
 
 	get_tree().create_timer(tutorial_duration).timeout.connect(_hide_tutorial)
 
@@ -93,16 +94,11 @@ func _on_hunger_changed(current: float, max_value: float) -> void:
 	hunger_bar.value = current
 
 func _on_resource_changed(_resource_name: String, _total: int) -> void:
-	_update_resources_label()
+	_update_inventory()
 
-func _update_resources_label() -> void:
-	if GameState.resources.is_empty():
-		resources_label.text = "Recursos: -"
-		return
-	var parts: PackedStringArray = []
-	for key in GameState.resources.keys():
-		parts.append("%s: %d" % [key, GameState.resources[key]])
-	resources_label.text = "Recursos: " + ", ".join(parts)
+func _update_inventory() -> void:
+	food_count_label.text = str(GameState.resources.get("comida", 0))
+	ore_count_label.text = str(GameState.resources.get("minerio", 0))
 
 func _on_player_died() -> void:
 	death_screen.visible = true

@@ -13,16 +13,15 @@ func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 
 func _physics_process(_delta: float) -> void:
-	var input_vector := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	velocity = input_vector * speed
+	velocity = _get_input_vector() * speed
 	move_and_slide()
 
 	if Input.is_action_just_pressed("ui_accept"):
 		_attack()
 
-func _attack() -> void:
-	for body in attack_area.get_overlapping_bodies():
-		if body == self:
-			continue
-		if body.has_method("hit"):
-			body.hit(attack_damage)
+## Lê o teclado diretamente (setas OU WASD), sem depender do Input Map do
+## projeto — assim funciona de imediato em qualquer configuração.
+func _get_input_vector() -> Vector2:
+	var x := 0.0
+	var y := 0.0
+	if Input.is_key_pressed(K

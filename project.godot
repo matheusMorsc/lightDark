@@ -19,7 +19,8 @@ config/icon="res://icon.svg"
 
 GameState="*res://autoload/game_state.gd"
 PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
+LitManager="*res://addons/lit/runtime/lit_manager.gd"
 
-[editor_plugins]
+[display]
 
-enabled=PackedStringArray("res://addons/phantom_camera/plugin.c
+window/stretch/m

@@ -8,6 +8,7 @@ signal hunger_changed(current: float, max_value: float)
 signal resource_changed(resource_name: String, total: int)
 signal player_died
 signal player_damaged(amount: float)
+signal recipe_crafted(recipe_id: String)
 
 @export var max_health: float = 100.0
 @export var max_hunger: float = 100.0
@@ -62,6 +63,24 @@ func remove_resource(resource_name: String, amount: int = 1) -> bool:
 		return false
 	resources[resource_name] = current - amount
 	resource_changed.emit(resource_name, resources[resource_name])
+	return true
+
+## true se houver recursos suficientes para cobrir todos os custos de `costs`
+## (ex: {"minerio": 3, "comida": 2}), sem alterar nada.
+func can_afford(costs: Dictionary) -> bool:
+	for resource_name in costs:
+		if resources.get(resource_name, 0) < int(costs[resource_name]):
+			return false
+	return true
+
+## Desconta todos os custos de uma vez (só se puder pagar tudo — atômico) e
+## avisa quem quiser reagir ao craft (ex: o player aplicando um bônus).
+func craft(recipe_id: String, costs: Dictionary) -> bool:
+	if not can_afford(costs):
+		return false
+	for resource_name in costs:
+		remove_resource(resource_name, int(costs[resource_name]))
+	recipe_crafted.emit(recipe_id)
 	return true
 
 func reset() -> void:

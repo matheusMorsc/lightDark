@@ -40,6 +40,11 @@ func _ready() -> void:
 	add_to_group("player")
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	GameState.player_damaged.connect(_on_player_damaged)
+	GameState.recipe_crafted.connect(_on_recipe_crafted)
+
+func _on_recipe_crafted(recipe_id: String) -> void:
+	if recipe_id == "ferramenta":
+		attack_damage += 5.0
 
 func _on_player_damaged(_amount: float) -> void:
 	if _flash_tween:

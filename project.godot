@@ -11,18 +11,18 @@ config_version=5
 [application]
 
 config/name="Light in the dark"
+run/main_scene="res://world/test_biome.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
-run/main_scene="res://world/test_biome.tscn"
+
+[autoload]
+
+GameState="*res://autoload/game_state.gd"
 
 [display]
 
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-
-[autoload]
-
-GameState="*res://autoload/game_state.gd"
 
 [physics]
 

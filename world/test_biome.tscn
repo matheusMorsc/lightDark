@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=3]
+[gd_scene load_steps=63 format=3]
 
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://entities/enemy.tscn" id="2"]
@@ -33,6 +33,35 @@
 [ext_resource type="PackedScene" path="res://entities/decor/ruins_c.tscn" id="31"]
 [ext_resource type="PackedScene" path="res://entities/decor/eye_plant.tscn" id="32"]
 [ext_resource type="PackedScene" path="res://entities/decor/cursed_bones.tscn" id="33"]
+[ext_resource type="PackedScene" path="res://entities/stone_node_d.tscn" id="34"]
+[ext_resource type="PackedScene" path="res://entities/stone_node_e.tscn" id="35"]
+[ext_resource type="PackedScene" path="res://entities/decor/statue_deer.tscn" id="36"]
+[ext_resource type="PackedScene" path="res://entities/decor/statue_fox.tscn" id="37"]
+[ext_resource type="PackedScene" path="res://entities/decor/statue_head.tscn" id="38"]
+[ext_resource type="PackedScene" path="res://entities/decor/statue_mother.tscn" id="39"]
+[ext_resource type="PackedScene" path="res://entities/decor/statue_oldman.tscn" id="40"]
+[ext_resource type="PackedScene" path="res://entities/decor/yurt1.tscn" id="41"]
+[ext_resource type="PackedScene" path="res://entities/decor/pyramid1.tscn" id="42"]
+[ext_resource type="PackedScene" path="res://entities/decor/liana1.tscn" id="43"]
+[ext_resource type="PackedScene" path="res://entities/decor/oval_rock1.tscn" id="44"]
+[ext_resource type="PackedScene" path="res://entities/decor/caury_pearl1.tscn" id="45"]
+[ext_resource type="PackedScene" path="res://entities/decor/mushroom_orange1.tscn" id="46"]
+[ext_resource type="PackedScene" path="res://entities/decor/jaws_plant.tscn" id="47"]
+[ext_resource type="PackedScene" path="res://entities/decor/many_eyes_plant.tscn" id="48"]
+[ext_resource type="PackedScene" path="res://entities/decor/meat_flower.tscn" id="49"]
+[ext_resource type="PackedScene" path="res://entities/decor/pustules.tscn" id="50"]
+[ext_resource type="PackedScene" path="res://entities/decor/spike_plant.tscn" id="51"]
+[ext_resource type="PackedScene" path="res://entities/decor/tentacle_plant.tscn" id="52"]
+[ext_resource type="PackedScene" path="res://entities/decor/tubular_plant.tscn" id="53"]
+[ext_resource type="PackedScene" path="res://entities/decor/veins.tscn" id="54"]
+[ext_resource type="PackedScene" path="res://entities/decor/rock_eyes.tscn" id="55"]
+[ext_resource type="PackedScene" path="res://entities/decor/cursed_ruins.tscn" id="56"]
+[ext_resource type="PackedScene" path="res://entities/decor/cursed_rock1.tscn" id="57"]
+[ext_resource type="PackedScene" path="res://entities/decor/ruins_sand.tscn" id="58"]
+[ext_resource type="PackedScene" path="res://entities/decor/ruins_snow.tscn" id="59"]
+[ext_resource type="PackedScene" path="res://entities/decor/ruins_white.tscn" id="60"]
+[ext_resource type="PackedScene" path="res://entities/decor/ruins_yellow.tscn" id="61"]
+[ext_resource type="PackedScene" path="res://entities/decor/mystery_statue.tscn" id="62"]
 
 [node name="TestBiome" type="Node2D"]
 
@@ -325,6 +354,126 @@ position = Vector2(150, -500)
 
 [node name="MushroomDecorB1" parent="." instance=ExtResource("25")]
 position = Vector2(-250, -450)
+
+[node name="StatueOldMan1" parent="." instance=ExtResource("40")]
+position = Vector2(-400, 850)
+
+[node name="StatueDeer1" parent="." instance=ExtResource("36")]
+position = Vector2(-200, 880)
+
+[node name="StatueHead1" parent="." instance=ExtResource("38")]
+position = Vector2(0, 850)
+
+[node name="StatueMother1" parent="." instance=ExtResource("39")]
+position = Vector2(200, 880)
+
+[node name="StatueFox1" parent="." instance=ExtResource("37")]
+position = Vector2(400, 850)
+
+[node name="MysteryStatue1" parent="." instance=ExtResource("62")]
+position = Vector2(0, 970)
+
+[node name="Yurt1_1" parent="." instance=ExtResource("41")]
+position = Vector2(-900, 150)
+
+[node name="Yurt1_2" parent="." instance=ExtResource("41")]
+position = Vector2(-980, 230)
+
+[node name="Pyramid1_1" parent="." instance=ExtResource("42")]
+position = Vector2(-850, 100)
+
+[node name="OvalRock1_1" parent="." instance=ExtResource("44")]
+position = Vector2(-950, 190)
+
+[node name="OvalRock1_2" parent="." instance=ExtResource("44")]
+position = Vector2(-830, 230)
+
+[node name="Liana1_1" parent="." instance=ExtResource("43")]
+position = Vector2(660, 60)
+
+[node name="CauryPearl1_1" parent="." instance=ExtResource("45")]
+position = Vector2(-670, -260)
+
+[node name="CauryPearl1_2" parent="." instance=ExtResource("45")]
+position = Vector2(740, 160)
+
+[node name="RuinsSnow1" parent="." instance=ExtResource("59")]
+position = Vector2(900, -650)
+
+[node name="RuinsSnow2" parent="." instance=ExtResource("59")]
+position = Vector2(970, -600)
+
+[node name="RuinsWhite1" parent="." instance=ExtResource("60")]
+position = Vector2(940, -690)
+
+[node name="RuinsWhite2" parent="." instance=ExtResource("60")]
+position = Vector2(860, -600)
+
+[node name="RuinsSand1" parent="." instance=ExtResource("58")]
+position = Vector2(-950, 650)
+
+[node name="RuinsSand2" parent="." instance=ExtResource("58")]
+position = Vector2(-880, 700)
+
+[node name="RuinsYellow1" parent="." instance=ExtResource("61")]
+position = Vector2(-1000, 690)
+
+[node name="RuinsYellow2" parent="." instance=ExtResource("61")]
+position = Vector2(-910, 610)
+
+[node name="JawsPlant1" parent="." instance=ExtResource("47")]
+position = Vector2(850, 380)
+
+[node name="ManyEyesPlant1" parent="." instance=ExtResource("48")]
+position = Vector2(900, 450)
+
+[node name="MeatFlower1" parent="." instance=ExtResource("49")]
+position = Vector2(820, 520)
+
+[node name="Pustules1" parent="." instance=ExtResource("50")]
+position = Vector2(950, 400)
+
+[node name="SpikePlant1" parent="." instance=ExtResource("51")]
+position = Vector2(880, 600)
+
+[node name="TentaclePlant1" parent="." instance=ExtResource("52")]
+position = Vector2(750, 580)
+
+[node name="TubularPlant1" parent="." instance=ExtResource("53")]
+position = Vector2(920, 550)
+
+[node name="Veins1" parent="." instance=ExtResource("54")]
+position = Vector2(800, 650)
+
+[node name="RockEyes1" parent="." instance=ExtResource("55")]
+position = Vector2(870, 470)
+
+[node name="CursedRuins1" parent="." instance=ExtResource("56")]
+position = Vector2(930, 500)
+
+[node name="CursedRock1_1" parent="." instance=ExtResource("57")]
+position = Vector2(770, 420)
+
+[node name="MushroomOrange1_1" parent="." instance=ExtResource("46")]
+position = Vector2(300, -600)
+
+[node name="MushroomOrange1_2" parent="." instance=ExtResource("46")]
+position = Vector2(-300, 600)
+
+[node name="MushroomOrange1_3" parent="." instance=ExtResource("46")]
+position = Vector2(600, 600)
+
+[node name="StoneNodeD1" parent="." instance=ExtResource("34")]
+position = Vector2(900, 300)
+
+[node name="StoneNodeD2" parent="." instance=ExtResource("34")]
+position = Vector2(-850, -400)
+
+[node name="StoneNodeE1" parent="." instance=ExtResource("35")]
+position = Vector2(400, 750)
+
+[node name="StoneNodeE2" parent="." instance=ExtResource("35")]
+position = Vector2(-400, -750)
 
 [node name="PostProcess" type="CanvasLayer" parent="."]
 layer = 5

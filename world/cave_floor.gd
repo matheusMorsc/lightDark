@@ -9,10 +9,10 @@ extends TileMapLayer
 ## Coordenadas (na atlas) dos tiles de chao disponiveis. A maioria e pedra
 ## (mais comum), com uma variante de terra mais rara pra dar textura.
 @export var stone_variants: Array[Vector2i] = [
-	Vector2i(17, 16),
-	Vector2i(18, 16),
-	Vector2i(17, 17),
-	Vector2i(18, 17),
+	Vector2i(16, 14),
+	Vector2i(17, 14),
+	Vector2i(18, 14),
+	Vector2i(19, 14),
 ]
 @export var dirt_variants: Array[Vector2i] = [
 	Vector2i(17, 12),

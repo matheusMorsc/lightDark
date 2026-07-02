@@ -17,6 +17,10 @@ separation = Vector2i(1, 1)
 18:16/0 = 0
 17:17/0 = 0
 18:17/0 = 0
+16:14/0 = 0
+17:14/0 = 0
+18:14/0 = 0
+19:14/0 = 0
 
 [sub_resource type="TileSet" id="TileSet_cave"]
 tile_size = Vector2i(16, 16)

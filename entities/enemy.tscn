@@ -30,3 +30,5 @@ shape = SubResource("RectangleShape2D_enemy")
 
 [node name="AttackTimer" type="Timer" parent="."]
 wait_time = 1.0
+
+[node name="SfxPlayer" type="AudioStreamPlayer2D" parent="."]

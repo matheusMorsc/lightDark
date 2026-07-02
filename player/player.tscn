@@ -50,6 +50,11 @@ shape = SubResource("RectangleShape2D_body")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="AttackArea"]
 shape = SubResource("CircleShape2D_attack")
 
+[node name="SfxPlayer" type="AudioStreamPlayer" parent="."]
+
+[node name="FootstepPlayer" type="AudioStreamPlayer" parent="."]
+volume_db = -8.0
+
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(1.5, 1.5)
 

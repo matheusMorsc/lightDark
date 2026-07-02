@@ -9,10 +9,18 @@ extends CharacterBody2D
 @export var attack_radius: float = 36.0
 @export var attack_interval: float = 1.0
 
+const HIT_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/hit_enemy_000.ogg"),
+	preload("res://assets/audio/sfx/hit_enemy_001.ogg"),
+	preload("res://assets/audio/sfx/hit_enemy_002.ogg"),
+]
+
 var health: float
 
 @onready var attack_timer: Timer = $AttackTimer
 @onready var sprite: Sprite2D = $Sprite2D
+@onready var collision_shape: CollisionShape2D = $CollisionShape2D
+@onready var sfx_player: AudioStreamPlayer2D = $SfxPlayer
 
 var _player: Node2D = null
 var _flash_tween: Tween
@@ -56,10 +64,28 @@ func _on_attack_timer_timeout() -> void:
 func hit(amount: float) -> void:
 	health -= amount
 	if health <= 0.0:
-		queue_free()
+		_die()
 		return
 	if _flash_tween:
 		_flash_tween.kill()
 	sprite.modulate = Color(1, 1, 1) * 2.0
 	_flash_tween = create_tween()
 	_flash_tween.tween_property(sprite, "modulate", Color.WHITE, 0.2)
+	_play_random(sfx_player, HIT_SOUNDS)
+
+## Fica "morto" imediatamente (sem colisão nem sprite) mas só remove o nó
+## depois do som de impacto tocar — se não fosse assim, o queue_free()
+## cortaria o áudio no meio.
+func _die() -> void:
+	set_physics_process(false)
+	collision_shape.set_deferred("disabled", true)
+	sprite.hide()
+	_play_random(sfx_player, HIT_SOUNDS)
+	await get_tree().create_timer(0.4).timeout
+	queue_free()
+
+func _play_random(player: AudioStreamPlayer2D, sounds: Array[AudioStream]) -> void:
+	if sounds.is_empty():
+		return
+	player.stream = sounds[randi() % sounds.size()]
+	player.play()

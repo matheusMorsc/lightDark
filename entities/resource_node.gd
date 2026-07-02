@@ -20,6 +20,7 @@ var _hits_remaining: int
 var _flash_tween: Tween
 
 func _ready() -> void:
+	add_to_group("resources")
 	_hits_remaining = hits_to_deplete
 
 func hit(_amount: float) -> void:

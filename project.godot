@@ -24,6 +24,7 @@ config/icon="res://icon.svg"
 GameState="*res://autoload/game_state.gd"
 PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
 LitManager="*uid://brf2hvdtyyw3q"
+CursorManager="*res://autoload/cursor_manager.gd"
 
 [display]
 

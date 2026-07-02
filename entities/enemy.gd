@@ -26,6 +26,7 @@ var _player: Node2D = null
 var _flash_tween: Tween
 
 func _ready() -> void:
+	add_to_group("enemies")
 	health = max_health
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	_player = get_tree().get_first_node_in_group("player")

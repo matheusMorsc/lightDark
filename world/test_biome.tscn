@@ -1,0 +1,38 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://player/player.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://entities/enemy.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://entities/resource_node.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://ui/hud.tscn" id="4"]
+
+[node name="TestBiome" type="Node2D"]
+
+[node name="Ground" type="Polygon2D" parent="."]
+color = Color(0.13, 0.32, 0.15, 1)
+polygon = PackedVector2Array(-1000, -1000, 1000, -1000, 1000, 1000, -1000, 1000)
+
+[node name="Player" parent="." instance=ExtResource("1")]
+position = Vector2(0, 0)
+
+[node name="Enemy1" parent="." instance=ExtResource("2")]
+position = Vector2(250, -100)
+
+[node name="Enemy2" parent="." instance=ExtResource("2")]
+position = Vector2(-300, 150)
+
+[node name="Enemy3" parent="." instance=ExtResource("2")]
+position = Vector2(150, 300)
+
+[node name="ResourceNode1" parent="." instance=ExtResource("3")]
+position = Vector2(100, 100)
+
+[node name="ResourceNode2" parent="." instance=ExtResource("3")]
+position = Vector2(-150, -80)
+
+[node name="ResourceNode3" parent="." instance=ExtResource("3")]
+position = Vector2(-250, 250)
+
+[node name="ResourceNode4" parent="." instance=ExtResource("3")]
+position = Vector2(350, -200)
+
+[node name="HUD" parent="." instance=ExtResource("4")]

@@ -1,0 +1,26 @@
+{
+  "idle": {
+    "right": 12,
+    "left": 12,
+    "down": 12,
+    "up": 4
+  },
+  "walk": {
+    "down": 6,
+    "right": 6,
+    "left": 6,
+    "up": 6
+  },
+  "attack": {
+    "down": 8,
+    "right": 8,
+    "left": 8,
+    "up": 8
+  },
+  "death": {
+    "down": 7,
+    "right": 7,
+    "left": 7,
+    "up": 7
+  }
+}

@@ -1,20 +1,13 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="2"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_2d.gd" id="3"]
-[ext_resource type="Texture2D" path="res://assets/kenney_roguelike_characters/Spritesheet/roguelikeChar_transparent.png" id="4"]
+[ext_resource type="SpriteFrames" path="res://assets/craftpix_swordsman/lvl1/swordsman_lvl1.tres" id="4"]
 [ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="5"]
 [ext_resource type="Script" path="res://addons/lit/nodes/lit_point_light_2d.gd" id="6"]
 [ext_resource type="Texture2D" path="res://assets/fx/shadow_blob.png" id="7"]
 [ext_resource type="PackedScene" path="res://world/light_shaft.tscn" id="8"]
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_player"]
-atlas = ExtResource("4")
-region = Rect2(0, 85, 16, 16)
-
-[sub_resource type="CanvasTexture" id="CanvasTexture_player"]
-diffuse_texture = SubResource("AtlasTexture_player")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_player"]
 shader = ExtResource("5")
@@ -34,10 +27,12 @@ position = Vector2(0, 14)
 scale = Vector2(0.5, 0.38)
 modulate = Color(1, 1, 1, 0.65)
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 material = SubResource("ShaderMaterial_player")
-texture = SubResource("CanvasTexture_player")
-scale = Vector2(2, 2)
+sprite_frames = ExtResource("4")
+animation = &"idle_down"
+offset = Vector2(0, 10)
+scale = Vector2(0.5, 0.5)
 
 [node name="Torch" type="Node2D" parent="."]
 script = ExtResource("6")

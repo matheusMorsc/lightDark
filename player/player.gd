@@ -34,6 +34,7 @@ const FOOTSTEP_SOUNDS: Array[AudioStream] = [
 
 var _flash_tween: Tween
 var _eat_key_was_pressed: bool = false
+var _attack_mouse_was_pressed: bool = false
 var _footstep_distance: float = 0.0
 
 func _ready() -> void:
@@ -59,8 +60,14 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_update_footsteps(delta)
 
-	if Input.is_action_just_pressed("ui_accept"):
+	# Ataque/coleta: Espaço OU clique esquerdo do mouse (o cursor já mostra
+	# espada/picareta via CursorManager quando tem algo alcançável embaixo).
+	var attack_mouse_pressed := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	var attack_pressed := Input.is_action_just_pressed("ui_accept") \
+		or (attack_mouse_pressed and not _attack_mouse_was_pressed)
+	if attack_pressed:
 		_attack()
+	_attack_mouse_was_pressed = attack_mouse_pressed
 
 	# "Just pressed" manual pra E, pelo mesmo motivo do _get_input_vector():
 	# não depender do Input Map do projeto.

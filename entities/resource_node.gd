@@ -2,7 +2,7 @@ extends StaticBody2D
 ## Nó de recurso colhível. Recebe golpes via hit() (mesma interface do Enemy)
 ## e soma ao contador global em GameState até esgotar.
 
-@export var resource_id: String = "madeira"
+@export var resource_id: String = "comida"
 @export var hits_to_deplete: int = 3
 @export var amount_per_hit: int = 1
 

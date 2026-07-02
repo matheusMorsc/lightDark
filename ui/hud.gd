@@ -4,6 +4,10 @@ extends CanvasLayer
 @onready var health_bar: ProgressBar = $Control/VBoxContainer/HealthBar
 @onready var hunger_bar: ProgressBar = $Control/VBoxContainer/HungerBar
 @onready var resources_label: Label = $Control/VBoxContainer/ResourcesLabel
+@onready var tutorial_panel: PanelContainer = $Control/TutorialPanel
+
+@export var tutorial_duration: float = 6.0
+@export var tutorial_fade_duration: float = 1.0
 
 func _ready() -> void:
 	GameState.health_changed.connect(_on_health_changed)
@@ -14,6 +18,13 @@ func _ready() -> void:
 	_on_health_changed(GameState.health, GameState.max_health)
 	_on_hunger_changed(GameState.hunger, GameState.max_hunger)
 	_update_resources_label()
+
+	get_tree().create_timer(tutorial_duration).timeout.connect(_hide_tutorial)
+
+func _hide_tutorial() -> void:
+	var tween := create_tween()
+	tween.tween_property(tutorial_panel, "modulate:a", 0.0, tutorial_fade_duration)
+	tween.tween_callback(tutorial_panel.hide)
 
 func _on_health_changed(current: float, max_value: float) -> void:
 	health_bar.max_value = max_value

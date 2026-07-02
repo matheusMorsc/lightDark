@@ -16,7 +16,7 @@ signal player_damaged(amount: float)
 
 var health: float = max_health
 var hunger: float = max_hunger
-var resources: Dictionary = {} # ex: {"madeira": 3}
+var resources: Dictionary = {} # ex: {"comida": 3}
 var is_dead: bool = false
 
 func _ready() -> void:
@@ -53,6 +53,16 @@ func eat(amount: float) -> void:
 func add_resource(resource_name: String, amount: int = 1) -> void:
 	resources[resource_name] = resources.get(resource_name, 0) + amount
 	resource_changed.emit(resource_name, resources[resource_name])
+
+## Tenta remover `amount` unidades de um recurso. Retorna true e desconta se
+## houver o suficiente; retorna false sem alterar nada caso contrário.
+func remove_resource(resource_name: String, amount: int = 1) -> bool:
+	var current: int = resources.get(resource_name, 0)
+	if current < amount:
+		return false
+	resources[resource_name] = current - amount
+	resource_changed.emit(resource_name, resources[resource_name])
+	return true
 
 func reset() -> void:
 	health = max_health

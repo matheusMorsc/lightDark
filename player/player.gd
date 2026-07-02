@@ -5,11 +5,13 @@ extends CharacterBody2D
 
 @export var speed: float = 200.0
 @export var attack_damage: float = 10.0
+@export var eat_hunger_restore: float = 25.0
 
 @onready var attack_area: Area2D = $AttackArea
 @onready var sprite: Sprite2D = $Sprite2D
 
 var _flash_tween: Tween
+var _eat_key_was_pressed: bool = false
 
 func _ready() -> void:
 	add_to_group("player")
@@ -29,6 +31,13 @@ func _physics_process(_delta: float) -> void:
 
 	if Input.is_action_just_pressed("ui_accept"):
 		_attack()
+
+	# "Just pressed" manual pra E, pelo mesmo motivo do _get_input_vector():
+	# não depender do Input Map do projeto.
+	var eat_key_pressed := Input.is_key_pressed(KEY_E)
+	if eat_key_pressed and not _eat_key_was_pressed:
+		_eat()
+	_eat_key_was_pressed = eat_key_pressed
 
 ## Lê o teclado diretamente (setas OU WASD), sem depender do Input Map do
 ## projeto — assim funciona de imediato em qualquer configuração.
@@ -52,3 +61,8 @@ func _attack() -> void:
 			continue
 		if body.has_method("hit"):
 			body.hit(attack_damage)
+
+## Consome 1 unidade de "comida" (se houver) e recupera fome.
+func _eat() -> void:
+	if GameState.remove_resource("comida", 1):
+		GameState.eat(eat_hunger_restore)

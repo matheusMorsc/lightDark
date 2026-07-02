@@ -12,8 +12,10 @@ extends CharacterBody2D
 var health: float
 
 @onready var attack_timer: Timer = $AttackTimer
+@onready var sprite: Sprite2D = $Sprite2D
 
 var _player: Node2D = null
+var _flash_tween: Tween
 
 func _ready() -> void:
 	health = max_health
@@ -55,3 +57,9 @@ func hit(amount: float) -> void:
 	health -= amount
 	if health <= 0.0:
 		queue_free()
+		return
+	if _flash_tween:
+		_flash_tween.kill()
+	sprite.modulate = Color(1, 1, 1) * 2.0
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(sprite, "modulate", Color.WHITE, 0.2)

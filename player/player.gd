@@ -7,10 +7,21 @@ extends CharacterBody2D
 @export var attack_damage: float = 10.0
 
 @onready var attack_area: Area2D = $AttackArea
+@onready var sprite: Sprite2D = $Sprite2D
+
+var _flash_tween: Tween
 
 func _ready() -> void:
 	add_to_group("player")
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+	GameState.player_damaged.connect(_on_player_damaged)
+
+func _on_player_damaged(_amount: float) -> void:
+	if _flash_tween:
+		_flash_tween.kill()
+	sprite.modulate = Color(1, 0.35, 0.35)
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(sprite, "modulate", Color.WHITE, 0.25)
 
 func _physics_process(_delta: float) -> void:
 	velocity = _get_input_vector() * speed

@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://entities/enemy.tscn" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://world/cave_floor.tscn" id="5"]
 [ext_resource type="Script" path="res://addons/lit/nodes/lit_canvas_modulate.gd" id="6"]
+[ext_resource type="PackedScene" path="res://entities/cave_wall.tscn" id="7"]
 
 [node name="TestBiome" type="Node2D"]
 
@@ -38,5 +39,23 @@ position = Vector2(-250, 250)
 
 [node name="ResourceNode4" parent="." instance=ExtResource("3")]
 position = Vector2(350, -200)
+
+[node name="Wall1" parent="." instance=ExtResource("7")]
+position = Vector2(90, 30)
+
+[node name="Wall2" parent="." instance=ExtResource("7")]
+position = Vector2(-70, -40)
+
+[node name="Wall3" parent="." instance=ExtResource("7")]
+position = Vector2(150, -60)
+
+[node name="Wall4" parent="." instance=ExtResource("7")]
+position = Vector2(182, -60)
+
+[node name="Wall5" parent="." instance=ExtResource("7")]
+position = Vector2(214, -60)
+
+[node name="Wall6" parent="." instance=ExtResource("7")]
+position = Vector2(-220, 180)
 
 [node name="HUD" parent="." instance=ExtResource("4")]

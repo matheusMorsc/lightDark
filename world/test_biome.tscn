@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://entities/enemy.tscn" id="2"]
@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://entities/cave_wall.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://world/organic_wall.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://entities/ore_node.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://entities/enemy_fast.tscn" id="10"]
 
 [node name="TestBiome" type="Node2D"]
 
@@ -30,6 +31,15 @@ position = Vector2(-300, 150)
 [node name="Enemy3" parent="." instance=ExtResource("2")]
 position = Vector2(150, 300)
 
+[node name="EnemyFast1" parent="." instance=ExtResource("10")]
+position = Vector2(-500, 350)
+
+[node name="EnemyFast2" parent="." instance=ExtResource("10")]
+position = Vector2(500, -350)
+
+[node name="EnemyFast3" parent="." instance=ExtResource("10")]
+position = Vector2(-150, -450)
+
 [node name="ResourceNode1" parent="." instance=ExtResource("3")]
 position = Vector2(100, 100)
 
@@ -41,6 +51,18 @@ position = Vector2(-250, 250)
 
 [node name="ResourceNode4" parent="." instance=ExtResource("3")]
 position = Vector2(350, -200)
+
+[node name="ResourceNode5" parent="." instance=ExtResource("3")]
+position = Vector2(500, 400)
+
+[node name="ResourceNode6" parent="." instance=ExtResource("3")]
+position = Vector2(-500, 50)
+
+[node name="ResourceNode7" parent="." instance=ExtResource("3")]
+position = Vector2(50, 480)
+
+[node name="ResourceNode8" parent="." instance=ExtResource("3")]
+position = Vector2(-450, -350)
 
 [node name="Wall1" parent="." instance=ExtResource("7")]
 position = Vector2(90, 30)
@@ -60,6 +82,21 @@ position = Vector2(214, -60)
 [node name="Wall6" parent="." instance=ExtResource("7")]
 position = Vector2(-220, 180)
 
+[node name="Wall7" parent="." instance=ExtResource("7")]
+position = Vector2(350, 350)
+
+[node name="Wall8" parent="." instance=ExtResource("7")]
+position = Vector2(-450, 250)
+
+[node name="Wall9" parent="." instance=ExtResource("7")]
+position = Vector2(-100, -300)
+
+[node name="Wall10" parent="." instance=ExtResource("7")]
+position = Vector2(300, -450)
+
+[node name="Wall11" parent="." instance=ExtResource("7")]
+position = Vector2(-550, -50)
+
 [node name="OrganicWall1" parent="." instance=ExtResource("8")]
 position = Vector2(400, 250)
 rng_seed = 7
@@ -71,6 +108,17 @@ rng_seed = 42
 base_radius = 75.0
 num_points = 8
 
+[node name="OrganicWall3" parent="." instance=ExtResource("8")]
+position = Vector2(600, -100)
+rng_seed = 99
+base_radius = 85.0
+
+[node name="OrganicWall4" parent="." instance=ExtResource("8")]
+position = Vector2(-600, 300)
+rng_seed = 13
+base_radius = 95.0
+num_points = 9
+
 [node name="OreNode1" parent="." instance=ExtResource("9")]
 position = Vector2(300, 100)
 
@@ -79,5 +127,14 @@ position = Vector2(-50, 200)
 
 [node name="OreNode3" parent="." instance=ExtResource("9")]
 position = Vector2(0, -250)
+
+[node name="OreNode4" parent="." instance=ExtResource("9")]
+position = Vector2(450, -50)
+
+[node name="OreNode5" parent="." instance=ExtResource("9")]
+position = Vector2(-300, 400)
+
+[node name="OreNode6" parent="." instance=ExtResource("9")]
+position = Vector2(150, -450)
 
 [node name="HUD" parent="." instance=ExtResource("4")]

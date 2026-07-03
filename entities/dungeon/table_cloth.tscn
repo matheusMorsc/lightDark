@@ -1,0 +1,25 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/tables/5.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+
+[sub_resource type="CanvasTexture" id="CT_table_cloth"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="SM_table_cloth"]
+shader = ExtResource("2")
+
+[sub_resource type="RectangleShape2D" id="RS_table_cloth"]
+size = Vector2(49.3, 25.2)
+
+[node name="TableCloth" type="StaticBody2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("SM_table_cloth")
+texture = SubResource("CT_table_cloth")
+offset = Vector2(0, -9)
+scale = Vector2(2, 2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -9.6)
+shape = SubResource("RS_table_cloth")

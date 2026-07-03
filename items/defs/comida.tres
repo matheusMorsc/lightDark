@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/item_def.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/kenney_pixel_platformer/Tiles/tile_0030_transparent.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "comida"
+display_name = "Cogumelo"
+icon = ExtResource("2")
+max_stack = 99
+category = 2
+hunger_restore = 25.0

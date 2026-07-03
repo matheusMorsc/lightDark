@@ -1,0 +1,43 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://entities/resource_node.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/kenney_roguelike_caves/gem_ore.png" id="2"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="3"]
+[ext_resource type="Texture2D" path="res://assets/fx/shadow_blob.png" id="4"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_ore"]
+diffuse_texture = ExtResource("2")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ore"]
+shader = ExtResource("3")
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ore"]
+size = Vector2(22, 22)
+
+[node name="OreNode" type="StaticBody2D"]
+script = ExtResource("1")
+resource_id = "minerio"
+hits_to_deplete = 4
+amount_per_hit = 1
+required_tool_type = "picareta"
+required_tool_tier = 1
+drops = Array[Dictionary]([{"chance": 1.0, "item_id": "minerio", "max": 1, "min": 1}, {"chance": 0.2, "item_id": "minerio", "max": 1, "min": 1}])
+
+[node name="ShadowBlob" type="Sprite2D" parent="."]
+texture = ExtResource("4")
+position = Vector2(0, -4.2)
+scale = Vector2(0.4, 0.3)
+modulate = Color(1, 1, 1, 0.6)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -16.2)
+material = SubResource("ShaderMaterial_ore")
+texture = SubResource("CanvasTexture_ore")
+scale = Vector2(2, 2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -16.2)
+shape = SubResource("RectangleShape2D_ore")
+
+[node name="SfxPlayer" type="AudioStreamPlayer2D" parent="."]
+position = Vector2(0, -16.2)

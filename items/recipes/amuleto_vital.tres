@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RecipeDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/recipe_def.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/essencia_icon.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "amuleto_vital"
+display_name = "Amuleto Vital"
+costs = {
+"essencia": 3
+}
+result_id = ""
+result_count = 1
+icon = ExtResource("2")
+sort_order = 8
+bonus_max_health = 25.0
+heal_on_craft = 25.0

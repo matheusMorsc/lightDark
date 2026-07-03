@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RecipeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://items/recipe_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "lanterna"
+display_name = "Lanterna"
+costs = {
+"fibra": 2,
+"madeira": 2
+}
+result_id = "lanterna"
+result_count = 1
+sort_order = 5

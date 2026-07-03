@@ -1,0 +1,36 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/boxes/3.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/characters/other/Shadow.png" id="4"]
+
+[sub_resource type="CanvasTexture" id="CT_crate_b"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="SM_crate_b"]
+shader = ExtResource("2")
+
+[sub_resource type="RectangleShape2D" id="RS_crate_b"]
+size = Vector2(23.8, 10.7)
+
+[sub_resource type="OccluderPolygon2D" id="OP_crate_b"]
+polygon = PackedVector2Array(-11.9, 0, -7.14, -5.35, 7.14, -5.35, 11.9, 0, 7.14, 5.35, -7.14, 5.35)
+
+[node name="CrateB" type="StaticBody2D"]
+
+[node name="ShadowBlob" type="Sprite2D" parent="."]
+texture = ExtResource("4")
+scale = Vector2(2.11, 2.05)
+modulate = Color(1, 1, 1, 0.6)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("SM_crate_b")
+texture = SubResource("CT_crate_b")
+offset = Vector2(0, -8)
+scale = Vector2(2, 2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RS_crate_b")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="."]
+occluder = SubResource("OP_crate_b")

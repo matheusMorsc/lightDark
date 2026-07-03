@@ -1,0 +1,308 @@
+[gd_scene load_steps=23 format=3]
+
+[ext_resource type="PackedScene" path="res://player/player.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://entities/enemy.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://entities/resource_node.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://ui/hud.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://world/cave_floor.tscn" id="5"]
+[ext_resource type="Script" path="res://addons/lit/nodes/lit_canvas_modulate.gd" id="6"]
+[ext_resource type="PackedScene" path="res://entities/cave_wall.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://world/organic_wall.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://entities/ore_node.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://entities/enemy_fast.tscn" id="10"]
+[ext_resource type="Script" path="res://addons/lit/nodes/lit_post_process.gd" id="11"]
+[ext_resource type="PackedScene" path="res://world/water_pool.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://entities/tree_round.tscn" id="13"]
+[ext_resource type="PackedScene" path="res://entities/tree_pine.tscn" id="14"]
+[ext_resource type="PackedScene" path="res://entities/bush.tscn" id="15"]
+[ext_resource type="PackedScene" path="res://entities/campfire.tscn" id="19"]
+[ext_resource type="PackedScene" path="res://entities/floor_torch.tscn" id="20"]
+[ext_resource type="PackedScene" path="res://entities/stone_node_a.tscn" id="21"]
+[ext_resource type="PackedScene" path="res://entities/stone_node_b.tscn" id="22"]
+[ext_resource type="PackedScene" path="res://entities/stone_node_c.tscn" id="23"]
+[ext_resource type="PackedScene" path="res://entities/stone_node_d.tscn" id="34"]
+[ext_resource type="PackedScene" path="res://entities/stone_node_e.tscn" id="35"]
+
+[node name="Biome1" type="Node2D"]
+
+[node name="LitCanvasModulate" type="Node2D" parent="."]
+script = ExtResource("6")
+color = Color(0.63, 0.63, 0.68, 1)
+
+[node name="CaveFloor" parent="." instance=ExtResource("5")]
+
+[node name="GroundDetail" type="Node2D" parent="."]
+
+[node name="Entities" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Player" parent="Entities" instance=ExtResource("1")]
+position = Vector2(0, 0)
+
+[node name="Enemy1" parent="Entities" instance=ExtResource("2")]
+position = Vector2(250, -100)
+
+[node name="Enemy2" parent="Entities" instance=ExtResource("2")]
+position = Vector2(-300, 150)
+
+[node name="Enemy3" parent="Entities" instance=ExtResource("2")]
+position = Vector2(150, 300)
+
+[node name="EnemyFast1" parent="Entities" instance=ExtResource("10")]
+position = Vector2(-500, 350)
+
+[node name="EnemyFast2" parent="Entities" instance=ExtResource("10")]
+position = Vector2(500, -350)
+
+[node name="EnemyFast3" parent="Entities" instance=ExtResource("10")]
+position = Vector2(-150, -450)
+
+[node name="ResourceNode1" parent="Entities" instance=ExtResource("3")]
+position = Vector2(100, 100)
+
+[node name="ResourceNode2" parent="Entities" instance=ExtResource("3")]
+position = Vector2(-150, -80)
+
+[node name="ResourceNode3" parent="Entities" instance=ExtResource("3")]
+position = Vector2(-250, 250)
+
+[node name="ResourceNode4" parent="Entities" instance=ExtResource("3")]
+position = Vector2(350, -200)
+
+[node name="ResourceNode5" parent="Entities" instance=ExtResource("3")]
+position = Vector2(500, 400)
+
+[node name="ResourceNode6" parent="Entities" instance=ExtResource("3")]
+position = Vector2(-500, 50)
+
+[node name="ResourceNode7" parent="Entities" instance=ExtResource("3")]
+position = Vector2(50, 480)
+
+[node name="ResourceNode8" parent="Entities" instance=ExtResource("3")]
+position = Vector2(-450, -350)
+
+[node name="Wall1" parent="Entities" instance=ExtResource("7")]
+position = Vector2(90, 30)
+
+[node name="Wall2" parent="Entities" instance=ExtResource("7")]
+position = Vector2(-70, -40)
+
+[node name="Wall3" parent="Entities" instance=ExtResource("7")]
+position = Vector2(150, -60)
+
+[node name="Wall4" parent="Entities" instance=ExtResource("7")]
+position = Vector2(182, -60)
+
+[node name="Wall5" parent="Entities" instance=ExtResource("7")]
+position = Vector2(214, -60)
+
+[node name="Wall6" parent="Entities" instance=ExtResource("7")]
+position = Vector2(-220, 180)
+
+[node name="Wall7" parent="Entities" instance=ExtResource("7")]
+position = Vector2(350, 350)
+
+[node name="Wall8" parent="Entities" instance=ExtResource("7")]
+position = Vector2(-450, 250)
+
+[node name="Wall9" parent="Entities" instance=ExtResource("7")]
+position = Vector2(-100, -300)
+
+[node name="Wall10" parent="Entities" instance=ExtResource("7")]
+position = Vector2(300, -450)
+
+[node name="Wall11" parent="Entities" instance=ExtResource("7")]
+position = Vector2(-550, -50)
+
+[node name="OrganicWall1" parent="Entities" instance=ExtResource("8")]
+position = Vector2(400, 250)
+rng_seed = 7
+base_radius = 90.0
+
+[node name="OrganicWall2" parent="Entities" instance=ExtResource("8")]
+position = Vector2(-380, -180)
+rng_seed = 42
+base_radius = 75.0
+num_points = 8
+
+[node name="OrganicWall3" parent="Entities" instance=ExtResource("8")]
+position = Vector2(600, -100)
+rng_seed = 99
+base_radius = 85.0
+
+[node name="OrganicWall4" parent="Entities" instance=ExtResource("8")]
+position = Vector2(-600, 300)
+rng_seed = 13
+base_radius = 95.0
+num_points = 9
+
+[node name="OreNode1" parent="Entities" instance=ExtResource("9")]
+position = Vector2(300, 116.2)
+
+[node name="OreNode2" parent="Entities" instance=ExtResource("9")]
+position = Vector2(-50, 216.2)
+
+[node name="OreNode3" parent="Entities" instance=ExtResource("9")]
+position = Vector2(0, -233.8)
+
+[node name="OreNode4" parent="Entities" instance=ExtResource("9")]
+position = Vector2(450, -33.8)
+
+[node name="OreNode5" parent="Entities" instance=ExtResource("9")]
+position = Vector2(-300, 416.2)
+
+[node name="OreNode6" parent="Entities" instance=ExtResource("9")]
+position = Vector2(150, -433.8)
+
+[node name="WaterPool1" parent="GroundDetail" instance=ExtResource("12")]
+position = Vector2(700, 100)
+width = 5
+height = 4
+
+[node name="WaterPool2" parent="GroundDetail" instance=ExtResource("12")]
+position = Vector2(-700, -200)
+width = 6
+height = 4
+
+[node name="TreeRound1" parent="Entities" instance=ExtResource("13")]
+position = Vector2(650, 250)
+
+[node name="TreeRound2" parent="Entities" instance=ExtResource("13")]
+position = Vector2(-650, 400)
+
+[node name="TreeRound3" parent="Entities" instance=ExtResource("13")]
+position = Vector2(250, 600)
+
+[node name="TreeRound4" parent="Entities" instance=ExtResource("13")]
+position = Vector2(450, 550)
+
+[node name="TreePine1" parent="Entities" instance=ExtResource("14")]
+position = Vector2(-250, -600)
+
+[node name="TreePine2" parent="Entities" instance=ExtResource("14")]
+position = Vector2(700, -250)
+
+[node name="TreePine3" parent="Entities" instance=ExtResource("14")]
+position = Vector2(-700, 150)
+
+[node name="TreePine4" parent="Entities" instance=ExtResource("14")]
+position = Vector2(-450, -500)
+
+[node name="Bush1" parent="Entities" instance=ExtResource("15")]
+position = Vector2(600, 364.4)
+
+[node name="Bush2" parent="Entities" instance=ExtResource("15")]
+position = Vector2(-600, 314.4)
+
+[node name="Bush3" parent="Entities" instance=ExtResource("15")]
+position = Vector2(300, -535.6)
+
+[node name="Bush4" parent="Entities" instance=ExtResource("15")]
+position = Vector2(-300, 514.4)
+
+[node name="Campfire1" parent="Entities" instance=ExtResource("19")]
+position = Vector2(200, 216)
+
+[node name="Campfire2" parent="Entities" instance=ExtResource("19")]
+position = Vector2(-320, -304)
+
+[node name="FloorTorch1" parent="Entities" instance=ExtResource("20")]
+position = Vector2(0, -152)
+
+[node name="FloorTorch2" parent="Entities" instance=ExtResource("20")]
+position = Vector2(-200, 98)
+
+[node name="FloorTorch3" parent="Entities" instance=ExtResource("20")]
+position = Vector2(500, 248)
+
+[node name="FloorTorch4" parent="Entities" instance=ExtResource("20")]
+position = Vector2(-420, 98)
+
+[node name="StoneNodeA1" parent="Entities" instance=ExtResource("21")]
+position = Vector2(620, -282.2)
+
+[node name="StoneNodeB1" parent="Entities" instance=ExtResource("22")]
+position = Vector2(-600, -233.5)
+
+[node name="StoneNodeC1" parent="Entities" instance=ExtResource("23")]
+position = Vector2(200, 565)
+
+[node name="StoneNodeA2" parent="Entities" instance=ExtResource("21")]
+position = Vector2(-150, -532.2)
+
+[node name="StoneNodeB2" parent="Entities" instance=ExtResource("22")]
+position = Vector2(680, 166.5)
+
+[node name="StoneNodeC2" parent="Entities" instance=ExtResource("23")]
+position = Vector2(-450, 565)
+
+[node name="StoneNodeA3" parent="Entities" instance=ExtResource("21")]
+position = Vector2(50, -332.2)
+
+[node name="StoneNodeD1" parent="Entities" instance=ExtResource("34")]
+position = Vector2(900, 316.5)
+
+[node name="StoneNodeD2" parent="Entities" instance=ExtResource("34")]
+position = Vector2(-850, -383.5)
+
+[node name="StoneNodeE1" parent="Entities" instance=ExtResource("35")]
+position = Vector2(400, 763.9)
+
+[node name="StoneNodeE2" parent="Entities" instance=ExtResource("35")]
+position = Vector2(-400, -736.1)
+
+[node name="WaterPool2" parent="GroundDetail/WaterPool2" instance=ExtResource("12")]
+position = Vector2(53, 23)
+width = 4
+height = 3
+
+[node name="BushSpawn1" parent="Entities" instance=ExtResource("15")]
+position = Vector2(-70, 50)
+
+[node name="BushSpawn2" parent="Entities" instance=ExtResource("15")]
+position = Vector2(60, -60)
+
+[node name="BushSpawn3" parent="Entities" instance=ExtResource("15")]
+position = Vector2(115, 85)
+
+[node name="StoneSpawnA" parent="Entities" instance=ExtResource("21")]
+position = Vector2(-100, -50)
+
+[node name="StoneSpawnB" parent="Entities" instance=ExtResource("22")]
+position = Vector2(40, 120)
+
+[node name="StoneSpawnC" parent="Entities" instance=ExtResource("23")]
+position = Vector2(-50, 115)
+
+[node name="TreePineSpawn" parent="Entities" instance=ExtResource("14")]
+position = Vector2(160, -80)
+
+[node name="TreeRoundSpawn" parent="Entities" instance=ExtResource("13")]
+position = Vector2(-160, 80)
+
+[node name="OreSpawn1" parent="Entities" instance=ExtResource("9")]
+position = Vector2(145, 145)
+
+[node name="OreSpawn2" parent="Entities" instance=ExtResource("9")]
+position = Vector2(-145, -115)
+
+[node name="PostProcess" type="CanvasLayer" parent="."]
+layer = 5
+script = ExtResource("11")
+grade_enabled = true
+saturation = 0.7
+contrast = 1.1
+outline_enabled = true
+outline_color = Color(0.05, 0.04, 0.06, 1)
+outline_thickness = 1.0
+outline_threshold = 0.12
+outline_strength = 0.55
+vignette_enabled = true
+vignette_strength = 0.35
+vignette_softness = 0.6
+grain_enabled = true
+grain_intensity = 0.04
+grain_size = 1.5
+
+[node name="HUD" parent="." instance=ExtResource("4")]
+

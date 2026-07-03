@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_cursed_land/rock_eyes.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_rockeyes"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_rockeyes"]
+shader = ExtResource("2")
+
+[node name="RockEyes" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -24.9)
+material = SubResource("ShaderMaterial_rockeyes")
+texture = SubResource("CanvasTexture_rockeyes")
+scale = Vector2(0.83, 0.83)

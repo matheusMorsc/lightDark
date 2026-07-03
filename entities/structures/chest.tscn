@@ -1,0 +1,46 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://entities/structures/chest.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/boxes/13.png" id="2"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="3"]
+
+[sub_resource type="CanvasTexture" id="CT_chest"]
+diffuse_texture = ExtResource("2")
+
+[sub_resource type="ShaderMaterial" id="SM_chest"]
+shader = ExtResource("3")
+
+[sub_resource type="RectangleShape2D" id="RS_chest"]
+size = Vector2(22, 10)
+
+[sub_resource type="CircleShape2D" id="CS_chest_area"]
+radius = 46.0
+
+[node name="Chest" type="StaticBody2D"]
+script = ExtResource("1")
+closed_texture = SubResource("CT_chest")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("SM_chest")
+texture = SubResource("CT_chest")
+offset = Vector2(0, -7.5)
+scale = Vector2(2, 2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RS_chest")
+
+[node name="Label" type="Label" parent="."]
+z_index = 200
+z_as_relative = false
+theme_override_font_sizes/font_size = 12
+offset_left = -80.0
+offset_top = -52.0
+offset_right = 80.0
+offset_bottom = -32.0
+horizontal_alignment = 1
+
+[node name="Area2D" type="Area2D" parent="."]
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("CS_chest_area")

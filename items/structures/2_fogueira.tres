@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StructureDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/structure_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://entities/campfire.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "fogueira"
+display_name = "Fogueira"
+scene = ExtResource("2")
+costs = {
+"madeira": 4,
+"pedra": 2
+}

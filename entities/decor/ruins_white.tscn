@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_ruins/ruins_white.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_ruinswhite"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ruinswhite"]
+shader = ExtResource("2")
+
+[node name="RuinsWhite" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -21.6)
+material = SubResource("ShaderMaterial_ruinswhite")
+texture = SubResource("CanvasTexture_ruinswhite")
+scale = Vector2(0.72, 0.72)

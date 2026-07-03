@@ -1,0 +1,17 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/trapdoors/1.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+
+[sub_resource type="CanvasTexture" id="CT_trapdoor"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="SM_trapdoor"]
+shader = ExtResource("2")
+
+[node name="Trapdoor" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("SM_trapdoor")
+texture = SubResource("CT_trapdoor")
+scale = Vector2(2, 2)

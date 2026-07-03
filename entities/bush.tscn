@@ -1,0 +1,39 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/kenney_roguelike_rpg/bush_berry.png" id="1"]
+[ext_resource type="Script" path="res://entities/resource_node.gd" id="9"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_bush"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bush"]
+shader = ExtResource("2")
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bush"]
+size = Vector2(20, 14)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_bush"]
+polygon = PackedVector2Array(-14, 0, -10, -8, 0, -12, 10, -8, 14, 0, 10, 6, -10, 6)
+
+[node name="Bush" type="StaticBody2D"]
+script = ExtResource("9")
+hits_to_deplete = 2
+required_tool_type = ""
+drops = Array[Dictionary]([{"chance": 1.0, "item_id": "fibra", "max": 2, "min": 1}, {"chance": 0.35, "item_id": "comida", "max": 1, "min": 1}])
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -14.4)
+material = SubResource("ShaderMaterial_bush")
+texture = SubResource("CanvasTexture_bush")
+scale = Vector2(1.8, 1.8)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -14.4)
+shape = SubResource("RectangleShape2D_bush")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="."]
+position = Vector2(0, -14.4)
+occluder = SubResource("OccluderPolygon2D_bush")
+
+[node name="SfxPlayer" type="AudioStreamPlayer2D" parent="."]

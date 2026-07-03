@@ -1,0 +1,119 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[addons]
+
+ss2d/version="3.3.1"
+
+[application]
+
+config/name="Light in the dark"
+run/main_scene="res://world/biome_1.tscn"
+config/features=PackedStringArray("4.7", "Forward Plus")
+config/icon="res://icon.svg"
+
+[autoload]
+
+ItemDB="*res://autoload/item_db.gd"
+GameState="*res://autoload/game_state.gd"
+PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
+LitManager="*uid://brf2hvdtyyw3q"
+CursorManager="*res://autoload/cursor_manager.gd"
+WorldLayers="*res://autoload/world_layers.gd"
+RecipeDB="*res://autoload/recipe_db.gd"
+BuildMode="*res://autoload/build_mode.gd"
+ObjectiveTracker="*res://autoload/objective_tracker.gd"
+SaveManager="*res://autoload/save_manager.gd"
+
+[display]
+
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/lit/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/rmsmartshape/plugin.cfg")
+
+[layer_names]
+
+2d_physics/layer_1="world"
+2d_physics/layer_2="player"
+2d_physics/layer_3="enemies"
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+rendering_device/driver.windows="d3d12"
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)
+
+[shader_globals]
+
+lit_light_data={
+"filter": "nearest",
+"repeat": "disable",
+"type": "sampler2D",
+"value": ""
+}
+lit_light_count={
+"type": "int",
+"value": 0
+}
+lit_viewport_size={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
+lit_canvas_scale={
+"type": "float",
+"value": 1.0
+}
+lit_ambient_color={
+"type": "color",
+"value": Color(1, 1, 1, 1)
+}
+lit_ambient_energy={
+"type": "float",
+"value": 1.0
+}
+lit_shadow_steps_max={
+"type": "int",
+"value": 64
+}
+lit_shadow_step_scaling={
+"type": "bool",
+"value": false
+}
+lit_tile_size={
+"type": "int",
+"value": 64
+}
+lit_tile_grid={
+"type": "ivec2",
+"value": Vector2i(0, 0)
+}
+lit_directional_count={
+"type": "int",
+"value": 0
+}
+lit_tile_headers={
+"filter": "nearest",
+"repeat": "disable",
+"type": "sampler2D",
+"value": ""
+}
+lit_tile_indices={
+"filter": "nearest",
+"repeat": "disable",
+"type": "sampler2D",
+"value": ""
+}

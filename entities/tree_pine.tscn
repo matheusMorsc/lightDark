@@ -1,0 +1,46 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/kenney_roguelike_rpg/tree_pine.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+[ext_resource type="Texture2D" path="res://assets/fx/shadow_blob.png" id="3"]
+[ext_resource type="Script" path="res://entities/resource_node.gd" id="9"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_tree_pine"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tree_pine"]
+shader = ExtResource("2")
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_tree_pine"]
+radius = 4.0
+height = 14.0
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_tree_pine"]
+polygon = PackedVector2Array(-11, 0, -7, -4, 7, -4, 11, 0, 7, 4, -7, 4)
+
+[node name="TreePine" type="StaticBody2D"]
+script = ExtResource("9")
+hits_to_deplete = 4
+required_tool_type = "machado"
+required_tool_tier = 1
+drops = Array[Dictionary]([{"chance": 1.0, "item_id": "madeira", "max": 2, "min": 1}])
+
+[node name="ShadowBlob" type="Sprite2D" parent="."]
+texture = ExtResource("3")
+scale = Vector2(0.75, 0.5)
+modulate = Color(1, 1, 1, 0.6)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_tree_pine")
+texture = SubResource("CanvasTexture_tree_pine")
+offset = Vector2(0, -17)
+scale = Vector2(2, 2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = 1.5707964
+shape = SubResource("CapsuleShape2D_tree_pine")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="."]
+occluder = SubResource("OccluderPolygon2D_tree_pine")
+
+[node name="SfxPlayer" type="AudioStreamPlayer2D" parent="."]

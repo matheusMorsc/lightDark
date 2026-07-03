@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ObjectiveDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://progression/objective_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "boss_b1"
+display_name = "Derrote o Guardião"
+kind = 0
+target_id = ""
+required = 2
+biome = 1
+sort_order = 1

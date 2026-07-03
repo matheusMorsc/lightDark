@@ -1,0 +1,31 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/torches/1.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+[ext_resource type="Script" path="res://addons/lit/nodes/lit_point_light_2d.gd" id="5"]
+
+[sub_resource type="CanvasTexture" id="CT_wall_torch"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="SM_wall_torch"]
+shader = ExtResource("2")
+
+[node name="WallTorch" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("SM_wall_torch")
+texture = SubResource("CT_wall_torch")
+offset = Vector2(0, -7.5)
+scale = Vector2(2, 2)
+
+[node name="Light" type="Node2D" parent="."]
+script = ExtResource("5")
+position = Vector2(0, -26)
+color = Color(1, 0.65, 0.3, 1)
+energy = 1.0
+range = 110.0
+falloff = 1.4
+height = 20.0
+shadow_enabled = true
+shadow_color = Color(0, 0, 0, 1)
+shadow_hardness = 0.4

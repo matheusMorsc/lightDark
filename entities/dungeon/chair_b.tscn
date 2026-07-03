@@ -1,0 +1,30 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/chairs/5.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/characters/other/Shadow.png" id="4"]
+
+[sub_resource type="CanvasTexture" id="CT_chair_b"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="SM_chair_b"]
+shader = ExtResource("2")
+
+[sub_resource type="RectangleShape2D" id="RS_chair_b"]
+size = Vector2(17, 8)
+
+[node name="ChairB" type="StaticBody2D"]
+
+[node name="ShadowBlob" type="Sprite2D" parent="."]
+texture = ExtResource("4")
+scale = Vector2(1.5, 1.47)
+modulate = Color(1, 1, 1, 0.6)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("SM_chair_b")
+texture = SubResource("CT_chair_b")
+offset = Vector2(0, -9.5)
+scale = Vector2(2, 2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RS_chair_b")

@@ -1,0 +1,36 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://entities/resource_node.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/kenney_pixel_platformer/Tiles/tile_0030_transparent.png" id="2"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="3"]
+[ext_resource type="Texture2D" path="res://assets/fx/shadow_blob.png" id="4"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_resource"]
+diffuse_texture = ExtResource("2")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_resource"]
+shader = ExtResource("3")
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_resource"]
+radius = 7.0
+height = 24.0
+
+[node name="ResourceNode" type="StaticBody2D"]
+script = ExtResource("1")
+
+[node name="ShadowBlob" type="Sprite2D" parent="."]
+texture = ExtResource("4")
+scale = Vector2(0.5, 0.38)
+modulate = Color(1, 1, 1, 0.65)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -14)
+material = SubResource("ShaderMaterial_resource")
+texture = SubResource("CanvasTexture_resource")
+scale = Vector2(2, 2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = 1.5707964
+shape = SubResource("CapsuleShape2D_resource")
+
+[node name="SfxPlayer" type="AudioStreamPlayer2D" parent="."]

@@ -1,0 +1,31 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/blockage/8.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+
+[sub_resource type="CanvasTexture" id="CT_rocks_b"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="SM_rocks_b"]
+shader = ExtResource("2")
+
+[sub_resource type="RectangleShape2D" id="RS_rocks_b"]
+size = Vector2(27.2, 22.4)
+
+[sub_resource type="OccluderPolygon2D" id="OP_rocks_b"]
+polygon = PackedVector2Array(-13.6, 0, -8.16, -6, 8.16, -6, 13.6, 0, 8.16, 6, -8.16, 6)
+
+[node name="RocksB" type="StaticBody2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("SM_rocks_b")
+texture = SubResource("CT_rocks_b")
+offset = Vector2(0, -8)
+scale = Vector2(2, 2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -8.2)
+shape = SubResource("RS_rocks_b")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="."]
+occluder = SubResource("OP_rocks_b")

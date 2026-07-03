@@ -1,0 +1,30 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/boxes/13.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/characters/other/Shadow.png" id="4"]
+
+[sub_resource type="CanvasTexture" id="CT_pot"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="SM_pot"]
+shader = ExtResource("2")
+
+[sub_resource type="RectangleShape2D" id="RS_pot"]
+size = Vector2(22.1, 9.9)
+
+[node name="Pot" type="StaticBody2D"]
+
+[node name="ShadowBlob" type="Sprite2D" parent="."]
+texture = ExtResource("4")
+scale = Vector2(1.95, 1.91)
+modulate = Color(1, 1, 1, 0.6)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("SM_pot")
+texture = SubResource("CT_pot")
+offset = Vector2(0, -6.5)
+scale = Vector2(2, 2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RS_pot")

@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://c7ujjui2qrpjg"]
+
+[ext_resource type="Script" uid="uid://8whqwy75grkf" path="res://world/water_pool.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://dgrwdqvajfclo" path="res://assets/kenney_roguelike_rpg/water_pool_atlas.png" id="2"]
+[ext_resource type="Shader" uid="uid://ck1hue5r77ak" path="res://addons/lit/shaders/lit_receiver.gdshader" id="3"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_water"]
+shader = ExtResource("3")
+shader_parameter/emissive_strength = 0.0
+shader_parameter/receiver_mask = 1
+shader_parameter/specular_strength = 0.5
+shader_parameter/specular_k = 32.0
+shader_parameter/shadow_steps = 64
+shader_parameter/shadow_min_step = 0.2
+shader_parameter/directional_horizontal_scale = 32.0
+shader_parameter/directional_shadow_reach = 1.0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_water"]
+texture = ExtResource("2")
+separation = Vector2i(1, 1)
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+0:2/0 = 0
+1:2/0 = 0
+2:2/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_water"]
+sources/0 = SubResource("TileSetAtlasSource_water")
+
+[node name="WaterPool" type="StaticBody2D" unique_id=318209079]
+script = ExtResource("1")
+width = 85
+height = 80
+
+[node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=1941132917]
+material = SubResource("ShaderMaterial_water")
+tile_set = SubResource("TileSet_water")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1879176487]

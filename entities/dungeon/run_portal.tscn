@@ -1,0 +1,44 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://entities/dungeon/run_portal.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/trapdoors/3.png" id="2"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="3"]
+[ext_resource type="Script" path="res://addons/lit/nodes/lit_point_light_2d.gd" id="4"]
+
+[sub_resource type="ShaderMaterial" id="SM_portal"]
+shader = ExtResource("3")
+
+[sub_resource type="CircleShape2D" id="CS_portal"]
+radius = 20.0
+
+[node name="RunPortal" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("SM_portal")
+texture = ExtResource("2")
+scale = Vector2(2, 2)
+
+[node name="Label" type="Label" parent="."]
+z_index = 200
+z_as_relative = false
+theme_override_font_sizes/font_size = 12
+offset_left = -80.0
+offset_top = -52.0
+offset_right = 80.0
+offset_bottom = -32.0
+horizontal_alignment = 1
+
+[node name="Light" type="Node2D" parent="."]
+script = ExtResource("4")
+color = Color(0.7, 0.9, 1, 1)
+energy = 0.9
+range = 95.0
+falloff = 1.5
+height = 16.0
+
+[node name="Area2D" type="Area2D" parent="."]
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("CS_portal")

@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_rocky_area/liana1.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_liana1"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_liana1"]
+shader = ExtResource("2")
+
+[node name="Liana1" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -15.2)
+material = SubResource("ShaderMaterial_liana1")
+texture = SubResource("CanvasTexture_liana1")
+scale = Vector2(0.8, 0.8)

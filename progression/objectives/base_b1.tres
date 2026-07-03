@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ObjectiveDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://progression/objective_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "base_b1"
+display_name = "Construa estruturas"
+kind = 2
+target_id = ""
+required = 4
+biome = 1
+sort_order = 3

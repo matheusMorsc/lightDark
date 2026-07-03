@@ -1,0 +1,25 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/blockage/1.png" id="1"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+
+[sub_resource type="CanvasTexture" id="CT_debris_wood"]
+diffuse_texture = ExtResource("1")
+
+[sub_resource type="ShaderMaterial" id="SM_debris_wood"]
+shader = ExtResource("2")
+
+[sub_resource type="RectangleShape2D" id="RS_debris_wood"]
+size = Vector2(27.2, 16.8)
+
+[node name="DebrisWood" type="StaticBody2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("SM_debris_wood")
+texture = SubResource("CT_debris_wood")
+offset = Vector2(0, -6)
+scale = Vector2(2, 2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -5.4)
+shape = SubResource("RS_debris_wood")

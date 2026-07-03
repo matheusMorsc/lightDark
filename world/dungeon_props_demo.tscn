@@ -1,0 +1,106 @@
+[gd_scene load_steps=25 format=3]
+
+[ext_resource type="PackedScene" path="res://player/player.tscn" id="p"]
+[ext_resource type="Script" path="res://addons/lit/nodes/lit_canvas_modulate.gd" id="cm"]
+[ext_resource type="Script" path="res://world/cave_floor.gd" id="floor"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="sh"]
+[ext_resource type="TileSet" path="res://world/dungeon_tileset.tres" id="ts"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/trapdoor.tscn" id="trapdoor"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/crate_a.tscn" id="crate_a"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/crate_b.tscn" id="crate_b"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/crate_c.tscn" id="crate_c"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/pot.tscn" id="pot"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/bookshelf_a.tscn" id="bookshelf_a"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/bookshelf_b.tscn" id="bookshelf_b"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/table_a.tscn" id="table_a"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/table_b.tscn" id="table_b"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/table_cloth.tscn" id="table_cloth"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/chair_a.tscn" id="chair_a"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/chair_b.tscn" id="chair_b"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/wall_torch.tscn" id="wall_torch"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/debris_wood.tscn" id="debris_wood"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/rocks_a.tscn" id="rocks_a"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/rocks_b.tscn" id="rocks_b"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/barrel.tscn" id="barrel"]
+[ext_resource type="PackedScene" path="res://entities/dungeon/sack.tscn" id="sack"]
+
+[sub_resource type="ShaderMaterial" id="SM_floor"]
+shader = ExtResource("sh")
+
+[node name="DungeonPropsDemo" type="Node2D"]
+
+[node name="LitCanvasModulate" type="Node2D" parent="."]
+script = ExtResource("cm")
+color = Color(0.06, 0.06, 0.09, 1)
+
+[node name="Floor" type="TileMapLayer" parent="."]
+material = SubResource("SM_floor")
+tile_set = ExtResource("ts")
+script = ExtResource("floor")
+width_tiles = 44
+height_tiles = 30
+stone_variants = Array[Vector2i]([Vector2i(2, 2), Vector2i(3, 2), Vector2i(4, 2), Vector2i(2, 3), Vector2i(3, 3), Vector2i(4, 3), Vector2i(2, 4), Vector2i(3, 4), Vector2i(4, 4)])
+dirt_variants = Array[Vector2i]([Vector2i(9, 3)])
+dirt_chance = 0.15
+
+[node name="GroundDetail" type="Node2D" parent="."]
+
+[node name="Trapdoor1" parent="GroundDetail" instance=ExtResource("trapdoor")]
+position = Vector2(0, 220)
+
+[node name="Entities" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Player" parent="Entities" instance=ExtResource("p")]
+position = Vector2(0, 140)
+
+[node name="CrateA1" parent="Entities" instance=ExtResource("crate_a")]
+position = Vector2(-240, -120)
+
+[node name="CrateB1" parent="Entities" instance=ExtResource("crate_b")]
+position = Vector2(-180, -120)
+
+[node name="CrateC1" parent="Entities" instance=ExtResource("crate_c")]
+position = Vector2(-120, -120)
+
+[node name="Pot1" parent="Entities" instance=ExtResource("pot")]
+position = Vector2(-60, -120)
+
+[node name="BookshelfA1" parent="Entities" instance=ExtResource("bookshelf_a")]
+position = Vector2(0, -120)
+
+[node name="BookshelfB1" parent="Entities" instance=ExtResource("bookshelf_b")]
+position = Vector2(60, -120)
+
+[node name="TableA1" parent="Entities" instance=ExtResource("table_a")]
+position = Vector2(120, -120)
+
+[node name="TableB1" parent="Entities" instance=ExtResource("table_b")]
+position = Vector2(180, -120)
+
+[node name="TableCloth1" parent="Entities" instance=ExtResource("table_cloth")]
+position = Vector2(240, -120)
+
+[node name="ChairA1" parent="Entities" instance=ExtResource("chair_a")]
+position = Vector2(-240, -30)
+
+[node name="ChairB1" parent="Entities" instance=ExtResource("chair_b")]
+position = Vector2(-180, -30)
+
+[node name="WallTorch1" parent="Entities" instance=ExtResource("wall_torch")]
+position = Vector2(-120, -30)
+
+[node name="DebrisWood1" parent="Entities" instance=ExtResource("debris_wood")]
+position = Vector2(-60, -30)
+
+[node name="RocksA1" parent="Entities" instance=ExtResource("rocks_a")]
+position = Vector2(0, -30)
+
+[node name="RocksB1" parent="Entities" instance=ExtResource("rocks_b")]
+position = Vector2(60, -30)
+
+[node name="Barrel1" parent="Entities" instance=ExtResource("barrel")]
+position = Vector2(120, -30)
+
+[node name="Sack1" parent="Entities" instance=ExtResource("sack")]
+position = Vector2(180, -30)

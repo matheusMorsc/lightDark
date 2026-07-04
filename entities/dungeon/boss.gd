@@ -136,6 +136,7 @@ func hit(amount: float) -> void:
 	if _state == State.DEAD:
 		return
 	health -= amount
+	DamageNumbers.spawn(get_parent(), global_position, amount)
 	_play_random(HIT_SOUNDS)
 	if _flash_tween:
 		_flash_tween.kill()

@@ -17,6 +17,16 @@ const SNAP := 8.0
 ## só podem ser erguidas dentro dessa distância de uma Workbench já construída.
 const WORKBENCH_RANGE := 200.0
 
+## Teclas 1-9 e 0 = 10 dígitos (mesmo padrão de RECIPE_KEYS/HOTBAR_KEYS em
+## hud.gd). Registrado jul/2026: antes disso o código somava `KEY_1 + i`
+## direto, que só é válido pra i=0..8 — pra i=9 (10º item) o resultado NÃO
+## é KEY_0 (os codes não são sequenciais nessa direção), e a partir de 11
+## itens (hoje, com Baú Grande/Poste de Luz) não existe tecla nenhuma pro
+## 11º. Fix: array explícito + `mini()` no loop, e scroll do mouse cobre
+## qualquer quantidade de estruturas além das 10 teclas físicas (ver
+## _unhandled_input abaixo).
+const BUILD_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
+
 var active: bool = false
 ## Frame em que o modo foi fechado (o ESC que fecha não deve abrir o pause).
 var last_exit_frame := -1
@@ -60,6 +70,16 @@ func _ready() -> void:
 			push_warning("BuildMode: ", file, " carregou mas def.scene é null (cena referenciada não resolveu).")
 			continue
 		_all_defs.append(def)
+	# Diagnóstico permanente em build de debug (jul/2026, mesmo espírito do
+	# aviso de load acima): reportado pelo usuário que Baú Grande/Poste de
+	# Luz não aparecem no modo B mesmo com o upgrade "constr_workbench"
+	# comprado — nada no código explica isso à leitura, então em vez de
+	# adivinhar de novo, listar aqui o que REALMENTE carregou.
+	if OS.is_debug_build():
+		var ids: Array = []
+		for d in _all_defs:
+			ids.append("%s (upgrade=%s)" % [d.id, d.required_upgrade_id if d.required_upgrade_id != "" else "-"])
+		print("BuildMode: estruturas carregadas de %s: %s" % [STRUCTURES_DIR, ids])
 	_refresh_available()
 	UpgradeTracker.purchased.connect(func(_def: UpgradeDef) -> void: _refresh_available())
 
@@ -70,6 +90,12 @@ func _refresh_available() -> void:
 	_defs = _all_defs.filter(func(d: StructureDef) -> bool:
 		return d.required_upgrade_id == "" or UpgradeTracker.is_purchased(d.required_upgrade_id)
 	)
+	if OS.is_debug_build():
+		for d in _all_defs:
+			if d.required_upgrade_id != "" and not (d in _defs):
+				print("BuildMode: '%s' escondida — upgrade '%s' comprado? %s" % [
+					d.id, d.required_upgrade_id, UpgradeTracker.is_purchased(d.required_upgrade_id)
+				])
 	_num_was.resize(_defs.size())
 	_num_was.fill(false)
 	_index = clampi(_index, 0, maxi(0, _defs.size() - 1))
@@ -86,8 +112,8 @@ func _process(_delta: float) -> void:
 		_exit()
 		return
 
-	for i in _defs.size():
-		var pressed := Input.is_key_pressed(KEY_1 + i)
+	for i in mini(_defs.size(), BUILD_KEYS.size()):
+		var pressed := Input.is_key_pressed(BUILD_KEYS[i])
 		if pressed and not _num_was[i] and i != _index:
 			_index = i
 			_refresh_ghost()
@@ -95,10 +121,28 @@ func _process(_delta: float) -> void:
 
 	_update_ghost()
 
-	var click := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	# Sem o guard de UI, clicar num botão do painel clicável (ver hud.gd
+	# _refresh_build_panel, registrado jul/2026) também tentaria construir
+	# embaixo dele — mesma classe de bug já resolvida no ataque do player
+	# (ver player.gd e "Convenções" no PROJECT_STATUS).
+	var over_ui := get_viewport().gui_get_hovered_control() != null
+	var click := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not over_ui
 	if click and not _click_was:
 		_try_place()
 	_click_was = click
+
+## Scroll do mouse percorre a lista de estruturas (mesmo padrão da hotbar em
+## hud.gd) — cobre qualquer quantidade de estruturas, não só as 10 primeiras
+## que cabem em teclas físicas.
+func _unhandled_input(event: InputEvent) -> void:
+	if not active or _defs.is_empty() or not (event is InputEventMouseButton) or not event.pressed:
+		return
+	if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		_index = (_index + 1) % _defs.size()
+		_refresh_ghost()
+	elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		_index = (_index + _defs.size() - 1) % _defs.size()
+		_refresh_ghost()
 
 func _toggle() -> void:
 	if active:
@@ -171,8 +215,9 @@ func _update_ghost() -> void:
 		_invalid_reason = "sem espaço livre aqui"
 	if _hint:
 		var status := (" — %s" % _invalid_reason) if _invalid_reason != "" else ""
-		_hint.text = "%s — %s%s\n[1..%d] troca | clique: construir | B: sair" % [
-			def.display_name, _cost_text(def), status, _defs.size()
+		var key_hint := "[1..%d]" % mini(_defs.size(), BUILD_KEYS.size())
+		_hint.text = "%s — %s%s\n%s ou scroll troca | clique: construir | B: sair" % [
+			def.display_name, _cost_text(def), status, key_hint
 		]
 
 ## true se existir alguma Workbench construída dentro de WORKBENCH_RANGE.
@@ -237,5 +282,21 @@ func get_available() -> Array[StructureDef]:
 func get_selected_index() -> int:
 	return _index
 
+## Seleciona a estrutura pelo índice diretamente — chamado pelo painel
+## clicável do HUD (registrado jul/2026, ver "Convenções": teclas 1..0 e
+## scroll continuam funcionando também, isso só dá uma terceira forma sem
+## limite de quantidade de estruturas).
+func select_index(i: int) -> void:
+	if i < 0 or i >= _defs.size() or i == _index:
+		return
+	_index = i
+	_refresh_ghost()
+
 func get_cost_text(def: StructureDef) -> String:
 	return _cost_text(def)
+
+## Quantas das estruturas disponíveis têm tecla física (1..0) — usado pelo
+## painel do HUD pra saber a partir de qual linha mostrar "[scroll]" em vez
+## de um número (ver hud.gd::_refresh_build_panel).
+func get_key_count() -> int:
+	return BUILD_KEYS.size()

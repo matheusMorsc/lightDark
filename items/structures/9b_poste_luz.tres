@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StructureDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/structure_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://entities/structures/light_post.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "poste_luz"
+display_name = "Poste de Luz"
+scene = ExtResource("2")
+costs = {
+"madeira": 4,
+"pedra": 4,
+"fibra": 2
+}
+required_upgrade_id = "constr_workbench"
+requires_workbench_nearby = true

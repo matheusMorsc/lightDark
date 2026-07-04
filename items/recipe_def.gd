@@ -25,3 +25,16 @@ extends Resource
 @export_group("Efeitos ao craftar")
 @export var bonus_max_health: float = 0.0
 @export var heal_on_craft: float = 0.0
+
+@export_group("Poção (Mesa de Alquimia)")
+## "" = não é poção. Senão, qual multiplicador temporário ela ativa em
+## GameState (ver GameState.apply_potion): "speed", "attack" ou "defense".
+## Craftar UMA poção é bebê-la na hora (mesmo padrão instantâneo do
+## Amuleto Vital, sem item passando pelo inventário) — ver hud.gd::_try_craft.
+@export var potion_channel: String = ""
+## Multiplicador aplicado enquanto a poção está ativa (ex.: 1.3 = +30%
+## velocidade; 0.6 = 40% menos dano recebido, no canal "defense").
+@export var potion_mult: float = 1.0
+## Duração em segundos. Beber a mesma poção de novo RENOVA o tempo (não
+## empilha o multiplicador).
+@export var potion_duration: float = 0.0

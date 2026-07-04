@@ -35,6 +35,11 @@ const MAP_SCENE := preload("res://world/dungeon/run_map.tscn")
 ## de qualquer offset de região (ver REGIONS_DIR) pra nunca colidir.
 const RUN_OFFSET := Vector2(0, 1000000)
 const REGIONS_DIR := "res://world/regions"
+const MODIFIERS_DIR := "res://world/dungeon/modifiers"
+
+## Emitido quando uma run começa com o modificador sorteado (ver
+## RunModifierDef) — hud.gd escuta pra mostrar o toast de anúncio.
+signal run_modifier_rolled(mod: RunModifierDef)
 
 var in_run: bool = false
 ## Quantos mapas o jogador já entrou nesta run (1 = primeiro). Escala o risco.
@@ -57,6 +62,12 @@ var _region_defs: Dictionary = {}  # int -> RegionDef
 ## docs no topo do arquivo).
 var _region_roots: Dictionary = {}  # int -> Node2D
 
+## Modificador ativo da run atual (null = nenhum, ou fora de uma run).
+## Sorteado uma vez em _do_start_run() e vale pra todos os mapas até voltar
+## pra base — "maldição do dia" estilo roguelite, ver RunModifierDef.
+var active_modifier: RunModifierDef = null
+var _modifier_pool: Array[RunModifierDef] = []
+
 var _map: Node2D = null
 var _return_position := Vector2.ZERO
 var _fade_rect: ColorRect
@@ -65,6 +76,7 @@ var _fading := false
 func _ready() -> void:
 	GameState.player_died.connect(_on_player_died)
 	_load_region_defs()
+	_load_modifier_defs()
 	call_deferred("_capture_home")
 	# Véu preto pra transição de camadas (CanvasLayer acima de tudo).
 	var layer := CanvasLayer.new()
@@ -89,6 +101,43 @@ func _load_region_defs() -> void:
 		var def := load(REGIONS_DIR + "/" + file) as RegionDef
 		if def != null:
 			_region_defs[def.id] = def
+
+func _load_modifier_defs() -> void:
+	var dir := DirAccess.open(MODIFIERS_DIR)
+	if dir == null:
+		push_error("WorldLayers: pasta de modificadores não encontrada.")
+		return
+	for file in dir.get_files():
+		if file.ends_with(".remap"):
+			file = file.trim_suffix(".remap")
+		if not file.ends_with(".tres"):
+			continue
+		var def := load(MODIFIERS_DIR + "/" + file) as RunModifierDef
+		if def != null:
+			_modifier_pool.append(def)
+
+## Getters com fallback neutro (1.0 multiplicativo / 0.0 aditivo) — quem
+## chama não precisa checar `active_modifier == null` toda vez.
+func get_enemy_speed_mult() -> float:
+	return active_modifier.enemy_speed_mult if active_modifier else 1.0
+
+func get_enemy_damage_mult() -> float:
+	return active_modifier.enemy_damage_mult if active_modifier else 1.0
+
+func get_boss_power_mult() -> float:
+	return active_modifier.boss_power_mult if active_modifier else 1.0
+
+func get_elite_chance_bonus() -> float:
+	return active_modifier.elite_chance_bonus if active_modifier else 0.0
+
+func get_player_damage_mult() -> float:
+	return active_modifier.player_damage_mult if active_modifier else 1.0
+
+func get_heal_effectiveness_mult() -> float:
+	return active_modifier.heal_effectiveness_mult if active_modifier else 1.0
+
+func get_ore_yield_mult() -> float:
+	return active_modifier.ore_yield_mult if active_modifier else 1.0
 
 func _capture_home() -> void:
 	var p := _get_player()
@@ -150,6 +199,9 @@ func _do_start_run() -> void:
 	_return_position = player.global_position
 	in_run = true
 	map_index = 0
+	active_modifier = _modifier_pool[randi() % _modifier_pool.size()] if not _modifier_pool.is_empty() else null
+	if active_modifier:
+		run_modifier_rolled.emit(active_modifier)
 	SaveManager.save_game()
 	_goto_map("nenhum")
 
@@ -172,6 +224,7 @@ func _do_end_run() -> void:
 	var base := _base_root()
 	in_run = false
 	map_index = 0
+	active_modifier = null
 	base.show()
 	base.process_mode = Node.PROCESS_MODE_INHERIT
 	_reapply_ambient(base)

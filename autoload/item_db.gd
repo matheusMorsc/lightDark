@@ -20,6 +20,12 @@ func _ready() -> void:
 			continue
 		var def: ItemDef = load(DEFS_DIR + "/" + file) as ItemDef
 		if def != null and def.id != "":
+			# Placeholder geométrico pra arma sem ícone próprio ainda (ver
+			# PlaceholderIcons) — só entra em jogo se o .tres deixou `icon`
+			# vazio; assim que a arte de verdade chegar, basta setar `icon`
+			# lá que isso para de sobrescrever sozinho.
+			if def.icon == null and def.weapon_type != "":
+				def.icon = PlaceholderIcons.weapon_icon(def.weapon_type)
 			_defs[def.id] = def
 	if _defs.is_empty():
 		push_error("ItemDB: nenhuma definição de item carregada.")

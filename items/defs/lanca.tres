@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "espada_forjada"
-display_name = "Espada da Forja"
+id = "lanca"
+display_name = "Lança da Forja"
 max_stack = 1
 category = 1
 tool_type = ""
 tool_tier = 0
-weapon_damage_bonus = 15.0
-weapon_type = "espada"
+weapon_damage_bonus = 10.0
+weapon_type = "lanca"

@@ -6,7 +6,7 @@
 > decisões de design). **Regra: sempre que uma funcionalidade nova entrar no
 > jogo, atualizar este arquivo na mesma sessão.**
 
-Última atualização: 2026-07-03 (Forja com função própria: Tier II + Espada da Forja).
+Última atualização: 2026-07-04 (interação por E nas estações — craft filtrado por estação).
 
 ---
 
@@ -19,9 +19,23 @@
   área de ataque, escolhe o melhor por distância + alinhamento com a
   direção encarada, com leve prioridade a inimigos sobre coleta. Acerta
   qualquer coisa com método `hit()` — inimigos, boss, nós de recurso, props
-  quebráveis do dungeon.
+  quebráveis do dungeon. Esse é o moveset padrão (sem arma, com ferramenta
+  de coleta, ou com a Espada da Forja) — Lança e Martelo mudam o golpe
+  inteiro, ver "Armas com moveset próprio" abaixo.
 - Hit-stop de 50ms no acerto + fagulhas de partícula — dá peso ao golpe.
 - Knockback nos inimigos comuns ao levarem dano.
+- **Barra de vida flutuante + número de dano (registrado jul/2026, pedido
+  do usuário)**: todo inimigo comum (`entities/enemy.gd`) ganhou uma barra
+  de vida fininha acima da cabeça (`_draw()`, redesenhada via
+  `queue_redraw()` a cada mudança de `health` — hit, regen do afixo
+  "regenerating", cura do afixo "vampiric"), mesma receita que o Boss já
+  usava sozinho (`boss.gd::_draw()`, só maior). Todo golpe (jogador
+  acertando inimigo/boss) também mostra um número vermelho "-N" subindo e
+  sumindo no ponto do acerto — `entities/damage_numbers.gd`
+  (`class_name DamageNumbers`), função estática sem estado (mesmo padrão do
+  `PlaceholderIcons`) chamada de dentro de `enemy.gd::hit()` e
+  `boss.gd::hit()`, então reduções de dano (afixo "shielded") já aparecem
+  com o valor CERTO (pós-redução), não o bruto.
 - **Dash (Shift)**: impulso instantâneo, sem telegraph, ~0.16s de duração,
   cooldown de 0.7s, sem custo de recurso. Direção = movimento que estiver
   segurando, ou o último facing se estiver parado. Concede invencibilidade
@@ -35,17 +49,30 @@
   `AttackArea` já é fisicamente maior pra suportar isso, ver `player.tscn`);
   continua sendo alvo único, só fica bem mais fácil de conectar num inimigo
   que você acabou de passar correndo.
-- **Ataque especial em área (Q)** (registrado jul/2026): golpe giratório
-  que acerta TODOS os alvos num raio ao redor do jogador
-  (`SPECIAL_ATTACK_RADIUS = 100`), ao contrário do ataque normal (alvo
-  único). Dano é instantâneo (aplicado no frame em que Q é apertado); o
-  visual — um anel se expandindo — é o mesmo do ataque "Pancada" do Boss da
-  dungeon (`boss.gd::_do_slam`/`_draw`), só que aqui é puramente cosmético e
-  toca DEPOIS do dano, não antes. Só funciona com uma arma equipada
-  (`ItemDef.weapon_damage_bonus > 0` — ver abaixo); com machado/picareta
-  equipados não faz nada. Cooldown de 2.5s (`SPECIAL_ATTACK_COOLDOWN`) pra
-  não virar o ataque padrão — é um "nuke" ocasional. Não funciona durante o
-  dash (diferente do ataque normal, que agora funciona).
+- **Ataque especial em área (Q)** (registrado jul/2026, roteado por arma
+  desde jul/2026 — antes era genérico igual pra qualquer arma): dano é
+  sempre instantâneo (aplicado no frame em que Q é apertado) e sempre
+  acerta TODOS os alvos, ao contrário do ataque normal (alvo único). Só
+  funciona com uma arma equipada (`ItemDef.weapon_damage_bonus > 0` — ver
+  abaixo); com machado/picareta equipados não faz nada. Cooldown de 2.5s
+  (`SPECIAL_ATTACK_COOLDOWN`) pra não virar o ataque padrão — é um "nuke"
+  ocasional. Não funciona durante o dash (diferente do ataque normal, que
+  agora funciona). Versão por arma (`player.gd::_special_attack`, ver
+  `ItemDef.weapon_type`):
+  - **Espada**: giro em círculo ao redor do jogador
+    (`SPECIAL_ATTACK_RADIUS = 100`); visual — anel se expandindo — é o
+    mesmo do ataque "Pancada" do Boss da dungeon
+    (`boss.gd::_do_slam`/`_draw`), só que aqui é puramente cosmético e toca
+    DEPOIS do dano, não antes.
+  - **Lança**: em vez do círculo, vira um cone/linha bem mais longo que o
+    golpe normal dela (`SPECIAL_LANCE_RANGE = 220` contra
+    `LANCE_RANGE = 130`) — o "nuke" dela é alcance absurdo numa linha, não
+    área ao redor do jogador. Flash retangular maior e com o tom
+    avermelhado do especial (diferente do branco neutro do golpe normal).
+  - **Martelo**: mantém o mesmo círculo da Espada, mas SEMPRE atordoa quem
+    for atingido (`SPECIAL_HAMMER_STUN_DURATION = 1.6s`) — reforça a
+    identidade dele (controle) em vez de introduzir mecânica nova, já que
+    o golpe normal do martelo também atordoa.
 - Facing de 4 direções com animações idle/walk/attack/death próprias por
   direção.
 - Cursor do mouse troca sozinho conforme o que está embaixo dele: espada
@@ -60,6 +87,51 @@
   com a arma custa não poder colher ao mesmo tempo. Primeira arma: **Espada
   da Forja** (+15 de dano — mais que dobra o ataque base de 10, e libera o
   ataque especial em área), craftada só perto da Forja.
+- **Armas com moveset próprio** (registrado jul/2026, `ItemDef.weapon_type`,
+  ver `player.gd::_attack`): Espada continua alvo único; duas armas novas
+  mudam o golpe inteiro, não só o número de dano — todas craftadas só perto
+  da Forja, mesmo custo em minério/madeira que a Espada:
+  - **Lança da Forja** (+10 de dano por alvo, `weapon_type = "lanca"`):
+    PERFURA — acerta TODOS os alvos numa linha reta na frente (retângulo
+    130×26), não só o mais próximo. Sem stun, sem cooldown extra: a força
+    dela é acertar uma fileira inteira de inimigos alinhados, não o dano
+    isolado.
+  - **Martelo da Forja** (+25 de dano por alvo, `weapon_type = "martelo"`):
+    hitbox larga (raio 75) centrada na AttackArea — acerta todos ali, não
+    só um — e ATORDOA cada alvo por 1.2s (`Enemy.stun()`, novo método:
+    inimigo atordoado não persegue, não ataca, só sofre knockback). Em
+    troca, o golpe seguinte demora `HAMMER_EXTRA_COOLDOWN = 0.35s` a mais
+    — menos dano por segundo que a Espada, mas controla a luta. Boss e nós
+    de recurso não têm `stun()`, então são imunes de graça (sem gambiarra
+    de exceção no código — só não respondem à chamada).
+  - As duas também podem ser usadas durante o dash (a restrição foi
+    removida pro "ataque rápido" — ver acima), mas não ganham o alcance
+    extra desse recurso: só a Espada tem esse modo "rápido"; Lança e
+    Martelo sempre usam seu próprio golpe fixo, goste ou não do alcance
+    normal.
+  - **Ícones geométricos próprios** (registrado jul/2026, `items/
+    placeholder_icons.gd`): as 3 armas reaproveitavam o mesmo
+    `recipe_tool.png` genérico e ficavam idênticas no inventário — bem
+    ruim justo quando o moveset de cada uma é diferente. Agora cada uma
+    gera seu próprio ícone 32×32 em runtime (retângulos coloridos: Espada
+    = lâmina fina + guarda larga, Lança = cabo comprido + ponta triangular
+    fina, Martelo = cabeça grande e pesada + cabo curto) via
+    `PlaceholderIcons.weapon_icon()`, chamado por `ItemDB._ready()` só
+    quando o `.tres` do item deixa `icon` vazio. Sem depender de arquivo
+    `.png` novo (escrever binário no projeto não é confiável neste
+    ambiente) — quando a arte de verdade chegar, basta setar `icon` no
+    `.tres` que o placeholder para de ser usado sozinho.
+  - **Flash geométrico no golpe** (registrado jul/2026, `player.gd::_draw`):
+    o `AnimatedSprite2D` do jogador é sempre o mesmo swing do "Swordsman",
+    não importa a arma equipada (sem frames próprios pra Lança/Martelo
+    ainda) — sem isso, lançar ou martelar "parecia" sempre um golpe de
+    espada. Agora cada uma soma um efeito visual rápido no momento do golpe,
+    desenhado por cima do sprite, com formato igual à própria hitbox: Lança
+    = retângulo comprido na frente (130×26, some em 0.15s), Martelo = anel
+    largo se expandindo na AttackArea (raio 75, some em 0.2s) — bem mais
+    rápido que o anel do especial (Q), que é 0.35s: aqui é feedback de golpe
+    normal, não telegraph. A Espada continua só com a animação de swing, sem
+    efeito extra (não precisa — é a única com sprite de golpe próprio).
 
 ## Vida, fome e morte
 
@@ -82,14 +154,45 @@
   o que estiver no slot selecionado no momento (nada de escanear o
   inventário atrás da primeira comida) — mesma lógica de "selecionar pra
   usar" que já valia pra ferramentas.
+- **Contador de itens sem cortar (corrigido jul/2026)**: a caixinha "x99" no
+  canto do slot (`ui/inventory_slot.tscn::CountLabel`) estava um pouco
+  apertada — números de 2-3 dígitos (x75, x100...) cortavam a borda.
+  Aumentada a área do label e reduzida a fonte 1pt de folga.
 - Drag-and-drop entre slots: solta sobre outro item igual empilha (até o
   máximo, sobra fica no slot de origem), solta sobre item diferente troca
   de posição. O mesmo sistema funciona entre a hotbar e o baú (ver abaixo).
-- Itens data-driven (`ItemDef` .tres em `items/defs/`) — 11 hoje:
+- Itens data-driven (`ItemDef` .tres em `items/defs/`) — 13 hoje:
   madeira, pedra, fibra, minério, essência (sem uso de coleta direta, só
   drop de boss), Cogumelo/comida (+25 fome), Refeição Reforçada (craftada,
-  +60 fome / +30 vida), Machado I, Picareta I, Picareta II, Lanterna.
-- Categorias: recurso, ferramenta, comida, estrutura.
+  +60 fome / +30 vida), Machado I, Picareta I, Picareta II, Lanterna,
+  Amuleto Vital (+25 vida máxima), Amuleto Vital II (+40 vida máxima).
+- **Comer restaura o valor do PRÓPRIO item** (`ItemDef.hunger_restore`/
+  `heal_amount`, cada comida com seu valor — Cogumelo só fome, Refeição
+  Reforçada bem mais fome + cura). Uma tentativa anterior (jul/2026) de
+  igualar tudo num valor fixo foi revertida a pedido do usuário — a
+  variação entre comidas é querida; o que de fato incomodava era a ESCALA
+  da barra de vida mudando (ver Amuleto Vital / item PASSIVO abaixo), não
+  a comida.
+- **Fome desce mais devagar (registrado jul/2026)**:
+  `GameState.hunger_drain_per_second` reduzido de 0.3 pra 0.15 — de
+  ~5.5min até zerar (fome cheia) pra ~11min.
+- **Categoria PASSIVE + Amuleto Vital como item de verdade (registrado
+  jul/2026)**: antes craftar Amuleto Vital era um efeito instantâneo sem
+  item (somava direto em `GameState.max_health`, permanente, sem ligação
+  com o inventário — se esquecesse o motivo, a vida máxima só crescia e
+  nunca dava pra "ver" de onde vinha o bônus). Virou item físico
+  (`ItemDef.category = PASSIVE`, `passive_bonus_max_health`): o bônus só
+  vale enquanto o item existir em QUALQUER slot do inventário principal
+  (não precisa estar selecionado, diferente de ferramenta/arma — só não
+  pode estar guardado num baú). `GameState._recompute_passive_bonuses()`
+  roda toda vez que o inventário muda e recalcula `max_health =
+  BASE_MAX_HEALTH (100) + soma dos bônus ativos` — ganhar mostra um toast
+  "Vida máxima aumentada em X" (mesmo padrão do toast de poção) e cura o
+  mesmo tanto na hora; perder (dropar, guardar no baú) reduz o teto de
+  volta e mostra "Vida máxima reduzida em X", sem dano extra. Resultado: a
+  barra de vida sempre reflete o que você está carregando de verdade, sem
+  crescer escondido.
+- Categorias: recurso, ferramenta, comida, estrutura, passivo.
 
 ## Coleta e ferramentas
 
@@ -128,12 +231,45 @@
 ## Crafting
 
 - Painel de craft (C abre/fecha) se monta sozinho a partir das receitas
-  cadastradas — nenhuma linha de UI hardcoded.
+  cadastradas — nenhuma linha de UI hardcoded. **Clicável** (registrado
+  jul/2026, mesmo motivo do painel de construção — ver "Construção"
+  abaixo): cada linha virou um botão que crafta na hora, dentro de um
+  `ScrollContainer` sem limite de altura. Antes, cada linha era só
+  texto/ícone (sem clique) e a lista cortava nas primeiras 10 receitas
+  (`RECIPE_KEYS.size()`) — ia sumir 2 receitas de verdade (Lanterna
+  Avançada e Amuleto Vital II, ver "Estações com função") assim que
+  passassem de 10 no total. Tecla 1..0 continua funcionando pras 10
+  primeiras; a partir da 11ª só dá pra craftar clicando.
 - Receitas hoje: Machado I, Machado II, Picareta I, Picareta II, Espada da
-  Forja, Lanterna (2 fibra + 2 madeira — luz pessoal bem mais forte
-  enquanto no inventário), Refeição Reforçada (5 comida → 1 refeição),
-  Amuleto Vital (3 essências → +25 vida máxima permanente + cura 25 na
-  hora do craft).
+  Forja, Lança, Martelo, Lanterna (2 fibra + 2 madeira — luz pessoal bem
+  mais forte enquanto no inventário), Lanterna Avançada (perto da Mesa de
+  Pesquisa — consome 1 Lanterna, luz ainda mais forte), Refeição Reforçada
+  (5 comida → 1 refeição), Amuleto Vital (perto da Mesa de Alquimia — 3
+  essências → item real, +25 vida máxima enquanto estiver no inventário),
+  Amuleto Vital II (perto da Mesa de Pesquisa — 6 essências → item real,
+  +40 vida máxima), 3 poções (perto da Mesa de Alquimia — ver "Estações
+  com função").
+- **Craft geral (C) só mostra o básico** (registrado jul/2026, a pedido do
+  usuário): sem estação por perto (`required_station == ""`), o painel só
+  lista Machado I, Picareta I, Lanterna e Refeição Reforçada — ferramentas
+  Tier I + comida básica. Tier II (Machado/Picareta II, Espada/Lança/
+  Martelo) e itens de efeito (Amuleto Vital, poções) sempre exigiram uma
+  estação; **Amuleto Vital especificamente foi movido da lista geral pra
+  Mesa de Alquimia** nesse mesmo pedido (antes craftava em qualquer lugar,
+  ficando fora do padrão "nível 2 só nas mesas").
+  **Bug real encontrado logo depois (mesmo dia, print do usuário)**: mover
+  o Amuleto Vital pra `required_station` não tirou ele do painel geral —
+  `_build_recipe_rows` só escondia receita de OUTRA estação quando a visão
+  já estava FILTRADA (E numa estação); a visão geral (C) nunca filtrava
+  nada, só acrescentava o texto "(perto de X)" e deixava craftar clicando
+  mesmo longe (barrado só na hora, em `_try_craft`). Toda receita com
+  estação — Amuleto Vital, Lanterna Avançada, Amuleto Vital II, as 3
+  poções, até Lança/Martelo da Forja — continuava aparecendo no C geral.
+  Corrigido trocando a condição por uma comparação direta
+  (`r.required_station != _crafting_station_filter`): geral (filter == "")
+  só mostra receita sem estação nenhuma; filtrado só mostra a da própria
+  estação. O hint "(perto de X)" foi removido junto — ficou impossível de
+  acontecer depois do fix.
 - **Receitas com estação exigida** (`RecipeDef.required_station`, "" = em
   qualquer lugar): Machado II, Picareta II e Espada da Forja só craftam com
   uma Forja construída a ~200px (`hud.gd::_near_station`, mesmo raio e
@@ -141,18 +277,76 @@
   jogador em vez do ghost). Sem a estação por perto, o painel mostra
   "Precisa estar perto da Forja" em vez de craftar. O painel de craft já
   lista isso na linha da receita (`"... (perto da Forja)"`).
+- **Interação por E direto na estação** (registrado jul/2026, a pedido do
+  usuário): chegar perto de uma Forja/Mesa de Pesquisa/Mesa de Alquimia e
+  apertar E abre o painel de craft já FILTRADO só pelas receitas daquela
+  estação — não precisa mais abrir o craft geral (C, mostra tudo) e caçar
+  pelo texto "(perto de X)". E (não F) de propósito: F já é usado por
+  baú/talismã/portais — usar a mesma tecla arriscaria entrar numa run sem
+  querer se a estação estiver perto do Talismã. Mesmo padrão "só a mais
+  próxima responde" do baú (`entities/structures/station_interact.gd`,
+  reusado pelas 4 estações via `@export station_group/
+  station_display_name` — Forja, Mesa de Pesquisa, Mesa de Alquimia E
+  Workbench). Fechar é E de novo (ou C/ESC, que fecham qualquer variante
+  do painel). A Workbench não tem receita própria — apertar E nela mostra
+  "Nada disponível aqui ainda." mesmo, mensagem honesta em vez de erro.
+  Uma versão anterior listava as ESTRUTURAS que ela desbloqueia (Baú
+  Grande, Poste de Luz) como linhas informativas "(B constrói)" dentro
+  desse painel; **removida (jul/2026, pedido do usuário: "estrutura não
+  pode aparecer no C")** — estrutura só existe no modo B agora, nunca em
+  nenhuma tela de Crafting, pra não dar a impressão de que dá pra
+  "craftar" ali. Achado no processo:
+  `alchemy_table.tscn` também não tinha grupo nenhum atribuído (mesmo bug
+  do `research_table.tscn`, ver "Estações com função" abaixo) — corrigido
+  junto.
 
 ## Estações com função (registrado jul/2026)
 
 - Antes, as 4 estações da branch Construção (Workbench, Forja, Mesa de
   Alquimia, Mesa de Pesquisa) só existiam como marco de progressão — nada
   de verdade exigia estar perto delas. Primeiro passo pra mudar isso:
-  **Forja** agora dá acesso a receitas próprias (`RecipeDef.
+  **Forja** dá acesso a receitas próprias (`RecipeDef.
   required_station = "forja"`, ver "Crafting" acima): Machado II, Picareta
-  II e a Espada da Forja. Ainda faltam: Workbench (móveis/melhorias
-  básicas), Mesa de Alquimia (poções/buffs temporários — precisa de um
-  sistema de efeito com duração que ainda não existe) e Mesa de Pesquisa
-  (desbloqueios/receitas especiais).
+  II e a Espada da Forja. **Workbench** (registrado jul/2026) segue um
+  padrão diferente — em vez de receitas, ela desbloqueia DUAS estruturas
+  novas (`StructureDef.requires_workbench_nearby`, sem exigir upgrade
+  próprio na árvore): **Baú Grande** (40 slots) e **Poste de Luz**
+  (alcance de luz bem maior que a Tocha) — ver detalhes nas seções
+  próprias abaixo. **Mesa de Pesquisa** (registrado jul/2026) volta ao
+  padrão da Forja — receitas próprias (`required_station =
+  "mesa_pesquisa"`): **Lanterna Avançada** (consome 1 Lanterna + 2
+  essência + 4 fibra, alcance/energia de luz maiores — `player.gd::
+  _update_lantern` agora checa os dois tiers) e **Amuleto Vital II**
+  (6 essência, +40 HP permanente — igual ao Amuleto Vital original, só
+  mais caro e mais forte, para quando a essência já não tem mais onde
+  gastar). A cena `research_table.tscn` não tinha nenhum grupo atribuído
+  até agora — sem isso `_near_station("mesa_pesquisa")` nunca teria
+  encontrado a estrutura, mesmo com a receita certa (mesmo bug encontrado
+  em `alchemy_table.tscn` logo depois). **Mesa de Alquimia** (registrado
+  jul/2026): 3 poções (`required_station = "mesa_alquimia"`) que aplicam
+  um multiplicador TEMPORÁRIO em vez de permanente — **Poção de
+  Velocidade** (5 fibra + 2 comida, +35% velocidade, 60s), **Poção de
+  Força** (4 minério + 2 comida, +30% dano, 60s) e **Poção de Proteção**
+  (5 pedra + 3 fibra, -30% dano recebido, 60s). Craftar já é "beber" —
+  efeito instantâneo, sem item passando pelo inventário, mesmo padrão do
+  Amuleto Vital (`RecipeDef.potion_channel/potion_mult/potion_duration`,
+  ver `hud.gd::_try_craft` → `GameState.apply_potion`). Beber a mesma
+  poção de novo RENOVA os 60s, não empilha o multiplicador. Custos usam só
+  recursos base (fibra/comida/minério/pedra) de propósito — essência fica
+  reservada pra upgrades permanentes e Amuleto Vital/II, mantendo a
+  separação temático entre moeda "permanente" e "consumível". `GameState`
+  ganhou 3 canais fixos (`potion_speed_mult`/`potion_attack_mult`/
+  `potion_defense_mult`) com timer próprio cada um (`_process` conta
+  regressivamente, expira sozinho e emite `potion_expired` — o HUD mostra
+  um toast tanto ao aplicar quanto ao expirar). Ordem de multiplicação
+  confirmada: `base * mult_PERMANENTE (upgrade) * mult_POÇÃO (temporário)
+  * mult_RUN (modificador de run)` — ver `player.gd::
+  _current_attack_damage()`/velocidade. Sem ícone de frasco na arte do
+  projeto ainda: as 3 poções usam um placeholder gerado em código
+  (`PlaceholderIcons.potion_icon`, mesmo frasco, cor do líquido por canal)
+  em vez de reaproveitar um ícone existente — ao contrário do Amuleto
+  Vital (item único, sem ambiguidade), aqui são 3 itens que precisam ser
+  diferenciáveis entre si no painel.
 - Padrão pra estação nova ter função: um `.tscn` de estrutura recebe um
   grupo (`groups=["nome_da_estacao"]`, mesmo padrão já usado por
   `workbench.tscn`/`forge.tscn`); receitas ganham `RecipeDef.
@@ -173,7 +367,9 @@
   armazenamento), **Talismã** (8 madeira + 4 pedra, acesso à run),
   **Workbench** (8 madeira + 4 pedra), **Forja** (6 pedra + 4 minério),
   **Mesa de Alquimia** (6 madeira + 4 fibra), **Mesa de Pesquisa**
-  (8 madeira + 6 pedra).
+  (8 madeira + 6 pedra), **Baú Grande** (12 madeira + 8 pedra + 3 minério,
+  perto da Workbench), **Poste de Luz** (4 madeira + 4 pedra + 2 fibra,
+  perto da Workbench).
 - Estrutura nova = só criar um `.tres` + uma cena — nenhum código muda.
 - **Estruturas desbloqueáveis**: `StructureDef.required_upgrade_id` (opcional)
   só deixa a estrutura aparecer no modo B depois de comprado o upgrade
@@ -181,13 +377,42 @@
   abaixo) — é o caso da Workbench e das 3 estações seguintes. A lista
   numerada (1..N) é recalculada toda vez que o modo B abre e sempre que um
   upgrade é comprado.
-- **Estações avançadas perto da Workbench**: Forja, Mesa de Alquimia e Mesa
-  de Pesquisa só podem ser erguidas dentro de ~200px de uma Workbench já
-  construída (`StructureDef.requires_workbench_nearby`, checado no modo B
-  junto com custo/alcance/espaço — o ghost fica vermelho e o texto explica
-  o motivo). Ferramentas (Machado, Picareta) continuam craftáveis de
-  qualquer lugar pelo painel de craft (C) — só a CONSTRUÇÃO das estações
-  avançadas exige a Workbench por perto, não o craft de itens.
+- **Estações avançadas perto da Workbench**: Forja, Mesa de Alquimia, Mesa
+  de Pesquisa, Baú Grande e Poste de Luz só podem ser erguidas dentro de
+  ~200px de uma Workbench já construída (`StructureDef.
+  requires_workbench_nearby`, checado no modo B junto com custo/alcance/
+  espaço — o ghost fica vermelho e o texto explica o motivo). Ferramentas
+  (Machado, Picareta) continuam craftáveis de qualquer lugar pelo painel de
+  craft (C) — só a CONSTRUÇÃO das estações avançadas exige a Workbench por
+  perto, não o craft de itens.
+- **Baú Grande/Poste de Luz agora também exigem o upgrade da Workbench
+  pra APARECER na lista (corrigido jul/2026, reportado pelo usuário)**: a
+  decisão original (mesmo mês) era deixar os dois SEM `required_upgrade_id`
+  — apareciam na lista numerada do modo B desde o início do jogo, só
+  ficavam vermelhos/inválidos até existir uma Workbench de verdade por
+  perto. Na prática isso significava ver as duas estruturas no modo B antes
+  mesmo de ter comprado o upgrade da Workbench, o que confundia mais do que
+  ajudava. Agora os dois usam `required_upgrade_id = "constr_workbench"` —
+  o MESMO upgrade que libera a própria Workbench — então só aparecem
+  depois de comprado (igual Forja/Alquimia/Pesquisa), e continuam exigindo
+  a Workbench física por perto pra ficar verde/construível.
+- **Seleção por clique, tecla 1..0 OU scroll do mouse** (registrado
+  jul/2026): o painel do modo B virou clicável e scrollável, no mesmo
+  estilo do painel de progressão (tecla U) — cada linha é um botão
+  (`hud.gd::_build_row`) que chama `BuildMode.select_index(i)` direto,
+  sem precisar saber qual tecla ou fazer scroll. Motivo: teclas físicas só
+  cobrem até 10 (`BuildMode.BUILD_KEYS`, array explícito — antes o código
+  somava `KEY_1 + i` direto, que quebrava a partir do 10º item), e com 11+
+  estruturas (Baú Grande/Poste de Luz) sempre vai sobrar pelo menos uma
+  sem tecla. Tecla 1..0 e scroll (`BuildMode._unhandled_input`, mesmo
+  padrão da hotbar) continuam funcionando também — o clique é só mais uma
+  forma, não substitui as outras. O painel fica na borda esquerda (não
+  centralizado como o de progressão) de propósito: o jogador precisa
+  continuar vendo o ghost seguindo o mouse no resto da tela pra
+  posicionar a construção depois de escolher. `BuildMode._process()`
+  ganhou o mesmo guard de UI-hover já usado no ataque do player, pra
+  clicar num botão do painel não tentar construir embaixo dele ao mesmo
+  tempo.
 - **Só funciona na região 1 (base)**: `BuildMode` sai sozinho do modo
   construção (e recusa abrir) se o jogador estiver numa região 2+ ou numa
   run — ver "Regiões da superfície" abaixo.
@@ -282,6 +507,28 @@
   e hotbar transfere de verdade (empilha se bater o item, troca de posição
   senão).
 - Conteúdo persiste no save junto com a posição da estrutura.
+- **Baú Grande** (registrado jul/2026, função da Workbench — ver "Estações
+  com função"): mesma estrutura/script (`entities/structures/chest.gd`),
+  agora com `slot_count` virado `@export` (antes era uma constante fixa em
+  20) — o Baú Grande é só uma segunda cena (`chest_grande.tscn`) com
+  `slot_count = 40`, sprite maior/tingido de escuro pra diferenciar do baú
+  normal sem depender de arte nova. Só pode ser construído perto de uma
+  Workbench (`requires_workbench_nearby`, 12 madeira + 8 pedra + 3
+  minério). O painel do baú no HUD ganhou 40 slots fixos (antes 20) pra
+  caber os dois tamanhos — um baú normal só usa os primeiros 20 e os
+  demais ficam escondidos (`hud.gd::_update_chest_panel`, agora esconde
+  slots além da capacidade do baú aberto em vez de só "não atualizar").
+
+## Poste de Luz (registrado jul/2026, função da Workbench)
+
+- Segunda estrutura desbloqueada pela Workbench (`requires_workbench_nearby`,
+  4 madeira + 4 pedra + 2 fibra): mesma luz por ponto (`LitPointLight2D`) da
+  Tocha, mas alcance/energia maiores (raio 175 contra 110, energia 1.3) —
+  cobre uma área boa da base sem precisar espalhar várias tochas. Reaproveita
+  a mesma textura da Tocha (`floor_torch.png`) com escala maior e tingida
+  num branco mais frio, pra ficar visualmente distinto sem precisar de
+  sprite novo (mesmo truque de tint usado no reskin dos inimigos da região
+  2).
 
 ## Talismã e runs (lado roguelite)
 
@@ -298,6 +545,18 @@
 - Conteúdo escala com a profundidade (`map_index`) e com o **viés**
   escolhido no portal anterior: minério (mais veios), combate (mais
   inimigos + chance de elite), suprimentos (mais props).
+- **Run Modifiers** (registrado jul/2026, `RunModifierDef`, .tres em
+  `world/dungeon/modifiers/`) — "maldição do dia" estilo Hades/Slay the
+  Spire: `WorldLayers` sorteia UM modificador ao entrar no talismã
+  (`_do_start_run`), vale pra todos os mapas até voltar pra base (toast de
+  anúncio no início). 6 hoje, cada um com um efeito dominante só (fácil de
+  testar isolado): Escuridão (cura pela metade), Fúria Inimiga (+25% vel./
+  +15% dano dos inimigos), Veios Ricos (2× minério), Armas Frágeis (-25%
+  dano do jogador), Chefe Fortalecido (+50% poder do boss), Enxame (+25%
+  chance de elite em cima do viés do portal). Adicionar modificador novo =
+  criar `.tres`; nenhum código muda. `WorldLayers.active_modifier` é null
+  fora de run — todo getter (`get_enemy_speed_mult()` etc.) já tem
+  fallback neutro, ninguém precisa checar null na mão.
 - Props do dungeon (caixote, barril, pote, entulho de pedra, saco) são
   **quebráveis em 1 golpe sem ferramenta** — nunca fecham permanentemente
   a única passagem de uma sala gerada (fix de bug real).
@@ -318,9 +577,20 @@
   - **Explosivo** (kit 4, novo): persegue, "acende o pavio" ao chegar
     perto (pisca vermelho ~0.8s) e explode em área — dano em raio,
     depois se autodestrói (kamikaze, sem loot).
-  - Todos escalam vida/dano/velocidade com a profundidade do mapa; elites
-    (só no viés combate) são maiores, avermelhados, ~1.8× mais fortes —
-    aplica em qualquer um dos 4 tipos, não só no melee.
+  - Todos escalam vida/dano/velocidade com a profundidade do mapa (dano
+    também escala com `enemy_damage_mult` do Run Modifier ativo, se
+    houver).
+  - **Elite com afixos reais** (mudou jul/2026 — antes era só um
+    multiplicador burro ~1.8×): agora é um bump menor de vida (1.3×) +
+    2 afixos sorteados de `run_map.gd::ELITE_AFFIXES`, aplicados em
+    `entities/enemy.gd` e mostrados como texto flutuante acima da cabeça
+    (placeholder, sem ícone): **Rápido** (+40% velocidade), **Vampírico**
+    (cura 50% do dano de contato/explosão causado — projétil ainda não
+    cura em v1), **Blindado** (-35% de todo dano recebido), **Regenerativo**
+    (regenera 3%/s da vida máxima) e **Explosivo** (dá um último estouro em
+    área ao morrer, além do kamikaze de comportamento). Continua maior e
+    avermelhado pra identificar de longe. Aplica em qualquer um dos 4
+    comportamentos, não só no melee.
   - Visual: `SpriteFrames` montado em runtime a partir das strips U/D/S do
     `assets/craftpix_dungeon_kit/enemies/<1-4>/` (idle/walk/attack/death
     por direção, lado espelhado via flip_h — o kit não tem left/right
@@ -398,6 +668,14 @@
 - Barras de vida/fome, indicador de ferramenta equipada, hotbar numerada,
   painel de craft, painel do baú, painel de progressão, painel de
   objetivos, mapa simples, tela de morte, menu de pause.
+- **Número exato sobreposto nas barras de vida/fome** (registrado jul/2026,
+  pedido do usuário): `"atual / máximo"` centralizado em cima do
+  preenchimento (`HealthBar/ValueLabel`, `HungerBar/ValueLabel` em
+  `hud.tscn`, atualizado em `_on_health_changed`/`_on_hunger_changed`).
+  Sem isso, 100/100 (sem Amuleto Vital) e 150/150 (com dois) apareciam
+  visualmente IDÊNTICOS — a barra sempre cheia, só a escala mudando por
+  baixo — o que tornava difícil confirmar se o bônus passivo estava
+  ativo só de olhar.
 - Pause (ESC): volume persistido entre sessões, continuar, **Controles**
   (mostra a lista de teclas — mesmo texto que antes só aparecia ~6s no
   boot com fade; agora fica sempre acessível aqui, e o boot não mostra
@@ -412,11 +690,14 @@
 - **Menu de cheat/debug (F1)**: só existe em build de debug
   (`OS.is_debug_build()` — nunca aparece num export de release). Um botão
   "+10" por item de categoria RESOURCE (madeira, pedra, fibra, minério,
-  essência — data-driven via `ItemDB.get_all()`, item novo aparece
-  sozinho) + "Curar + saciar tudo". Existe só pra testar a progressão
-  (branch Construção, upgrades) sem precisar farmar em runs de verdade a
-  cada teste. Mutuamente exclusivo com craft/baú/progressão, integrado na
-  cadeia do ESC.
+  essência) OU FOOD (Cogumelo, Refeição Reforçada — categoria FOOD entrou
+  jul/2026, a pedido do usuário) — data-driven via `ItemDB.get_all()`, item
+  novo aparece sozinho — + "Curar + saciar tudo". Existe só pra testar a
+  progressão (branch Construção, upgrades) sem precisar farmar em runs de
+  verdade a cada teste. Mutuamente exclusivo com craft/baú/progressão,
+  integrado na cadeia do ESC. **Ancorado no topo-esquerda dentro de um
+  `ScrollContainer`** (jul/2026, era `CENTER_LEFT` sem scroll — a lista
+  cresceu e passou a cortar no canto inferior esquerdo da tela).
 
 ## Áudio
 

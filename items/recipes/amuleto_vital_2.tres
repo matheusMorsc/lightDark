@@ -5,14 +5,14 @@
 
 [resource]
 script = ExtResource("1")
-id = "amuleto_vital"
-display_name = "Amuleto Vital"
+id = "amuleto_vital_2"
+display_name = "Amuleto Vital II"
 costs = {
-"essencia": 3
+"essencia": 6
 }
-result_id = "amuleto_vital"
+result_id = "amuleto_vital_2"
 result_count = 1
 icon = ExtResource("2")
-sort_order = 10
-required_station = "mesa_alquimia"
-required_station_name = "Mesa de Alquimia"
+sort_order = 12
+required_station = "mesa_pesquisa"
+required_station_name = "Mesa de Pesquisa"

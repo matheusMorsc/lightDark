@@ -36,6 +36,41 @@ const SPECIAL_ATTACK_RADIUS: float = 100.0
 const SPECIAL_ATTACK_COOLDOWN: float = 2.5
 const SPECIAL_RING_DURATION: float = 0.35
 
+## Moveset por arma (registrado jul/2026, ver ItemDef.weapon_type e
+## _attack): espada/"" = alvo único, alcance normal (ATTACK_MAX_DIST acima).
+## Lança = alcance maior, PERFURA (acerta todos numa linha reta na frente,
+## não só o mais próximo). Martelo = hitbox larga em volta da AttackArea
+## (acerta todos ali, não só um), atordoa cada alvo, mas o golpe seguinte
+## demora mais (menos "dps", mais impacto por golpe).
+const LANCE_RANGE: float = 130.0
+const LANCE_WIDTH: float = 26.0
+const HAMMER_RADIUS: float = 75.0
+const HAMMER_EXTRA_COOLDOWN: float = 0.35
+const HAMMER_STUN_DURATION: float = 1.2
+
+## Ataque especial (Q) por arma (registrado jul/2026): antes era genérico —
+## o mesmo giro em área da Espada não importava qual arma estivesse
+## equipada, o que contradizia o resto do moveset por arma. Agora
+## `_special_attack` roteia pelo tipo (ver ItemDef.weapon_type): Espada
+## mantém o giro em círculo de sempre; Lança vira um cone/linha bem mais
+## longo que o golpe normal dela (SPECIAL_LANCE_RANGE > LANCE_RANGE);
+## Martelo mantém o mesmo círculo da Espada, mas SEMPRE atordoa (a versão
+## normal do martelo já atordoa, então isso só reforça a identidade em vez
+## de introduzir algo novo).
+const SPECIAL_LANCE_RANGE: float = 220.0
+const SPECIAL_LANCE_WIDTH: float = 40.0
+const SPECIAL_HAMMER_STUN_DURATION: float = 1.6
+
+## Flash geométrico no golpe de Lança/Martelo (registrado jul/2026): o
+## AnimatedSprite2D é sempre o mesmo swing do Swordsman não importa a arma
+## (não tem frames próprios pra cada uma ainda) — sem isso, usar a lança ou
+## o martelo "parece" usar a espada. Desenhado em `_draw()`, formato
+## combina com a hitbox de cada um (ver _attack_lance/_attack_hammer):
+## retângulo comprido pra lança, anel largo pro martelo. Bem mais rápido
+## que o anel do especial (Q) — é feedback de golpe normal, não telegraph.
+const LANCE_FLASH_DURATION: float = 0.15
+const HAMMER_FLASH_DURATION: float = 0.2
+
 const DAMAGE_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/hit_player_000.ogg"),
 	preload("res://assets/audio/sfx/hit_player_001.ogg"),
@@ -86,6 +121,19 @@ var _special_cooldown_left: float = 0.0
 ## visual — o dano já foi aplicado no frame em que _special_attack rodou).
 var _special_ring_timer: float = 0.0
 
+## Cooldown extra entre golpes — só o Martelo usa (ver _attack); outras
+## armas nunca setam isso, então fica sempre em 0 pra elas.
+var _weapon_cooldown_left: float = 0.0
+
+## >0 enquanto o flash geométrico do golpe de Lança/Martelo ainda está
+## visível (ver LANCE_FLASH_DURATION/HAMMER_FLASH_DURATION e _draw()).
+var _lance_flash_timer: float = 0.0
+var _hammer_flash_timer: float = 0.0
+## Versão "especial" (Q) do flash da lança — retângulo maior/mais vibrante
+## que o da lançada normal (ver SPECIAL_LANCE_RANGE), timer separado do
+## `_lance_flash_timer` normal pra não confundir duração/tamanho dos dois.
+var _special_lance_timer: float = 0.0
+
 func _ready() -> void:
 	add_to_group("player")
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
@@ -109,16 +157,53 @@ func _on_player_damaged(_amount: float) -> void:
 func _on_player_died() -> void:
 	sprite.play("death_" + _facing)
 
-## Anel do ataque especial (Q) — mesmo visual do "Pancada" do Boss
-## (boss.gd::_draw), só que aqui toca DEPOIS do dano (puramente cosmético):
-## cresce de 0 até SPECIAL_ATTACK_RADIUS ao longo de SPECIAL_RING_DURATION.
+## Desenha os flashes geométricos dos golpes (todos em coordenadas LOCAIS
+## — origem = pés do jogador). Cada timer é independente, então mais de um
+## pode aparecer no mesmo frame sem conflito (raro, mas inofensivo).
 func _draw() -> void:
-	if _special_ring_timer <= 0.0:
-		return
-	var t := 1.0 - _special_ring_timer / SPECIAL_RING_DURATION
-	var r := SPECIAL_ATTACK_RADIUS * clampf(t, 0.0, 1.0)
-	draw_arc(Vector2.ZERO, r, 0.0, TAU, 40, Color(1, 0.4, 0.3, 0.8), 3.0)
-	draw_arc(Vector2.ZERO, SPECIAL_ATTACK_RADIUS, 0.0, TAU, 40, Color(1, 0.4, 0.3, 0.35), 2.0)
+	# Anel do ataque especial (Q) — mesmo visual do "Pancada" do Boss
+	# (boss.gd::_draw), só que aqui toca DEPOIS do dano (puramente
+	# cosmético): cresce de 0 até SPECIAL_ATTACK_RADIUS.
+	if _special_ring_timer > 0.0:
+		var t := 1.0 - _special_ring_timer / SPECIAL_RING_DURATION
+		var r := SPECIAL_ATTACK_RADIUS * clampf(t, 0.0, 1.0)
+		draw_arc(Vector2.ZERO, r, 0.0, TAU, 40, Color(1, 0.4, 0.3, 0.8), 3.0)
+		draw_arc(Vector2.ZERO, SPECIAL_ATTACK_RADIUS, 0.0, TAU, 40, Color(1, 0.4, 0.3, 0.35), 2.0)
+
+	# Versão especial (Q) do flash da Lança: mesmo estilo retângulo, mas
+	# maior e com o tom avermelhado do especial (em vez do branco neutro do
+	# golpe normal) — reforça que isso é o "nuke" da lança, não o golpe padrão.
+	if _special_lance_timer > 0.0:
+		var slt := 1.0 - _special_lance_timer / SPECIAL_RING_DURATION
+		var sl_facing := _facing_vector()
+		var sl_size := Vector2(SPECIAL_LANCE_RANGE, SPECIAL_LANCE_WIDTH) if absf(sl_facing.x) > 0.5 \
+			else Vector2(SPECIAL_LANCE_WIDTH, SPECIAL_LANCE_RANGE)
+		var sl_center := sl_facing * (SPECIAL_LANCE_RANGE / 2.0)
+		var sl_alpha := (1.0 - slt) * 0.85
+		draw_rect(Rect2(sl_center - sl_size / 2.0, sl_size), Color(1, 0.4, 0.3, sl_alpha))
+
+	# Flash da Lança: retângulo na frente, mesmo formato/posição da hitbox
+	# real (ver _attack_lance) — o Swordsman não tem animação própria de
+	# lança ainda, isso é o que avisa "essa foi uma lançada", não um golpe
+	# de espada.
+	if _lance_flash_timer > 0.0:
+		var lt := 1.0 - _lance_flash_timer / LANCE_FLASH_DURATION
+		var facing_dir := _facing_vector()
+		var rect_size := Vector2(LANCE_RANGE, LANCE_WIDTH) if absf(facing_dir.x) > 0.5 \
+			else Vector2(LANCE_WIDTH, LANCE_RANGE)
+		var center := facing_dir * (LANCE_RANGE / 2.0)
+		var alpha := (1.0 - lt) * 0.75
+		draw_rect(Rect2(center - rect_size / 2.0, rect_size), Color(0.85, 0.87, 0.95, alpha))
+
+	# Flash do Martelo: anel largo se expandindo na posição da AttackArea,
+	# bem mais rápido que o do Q — é feedback do golpe normal, não um
+	# telegraph antes do dano (o dano já aconteceu, ver _attack_hammer).
+	if _hammer_flash_timer > 0.0:
+		var ht := 1.0 - _hammer_flash_timer / HAMMER_FLASH_DURATION
+		var hr := HAMMER_RADIUS * lerpf(0.5, 1.0, ht)
+		var halpha := (1.0 - ht) * 0.8
+		draw_arc(attack_area.position, hr, 0.0, TAU, 32, Color(0.7, 0.7, 0.76, halpha), 5.0)
+		draw_arc(attack_area.position, hr, 0.0, TAU, 32, Color(0.7, 0.7, 0.76, halpha * 0.4), 2.0)
 
 func _physics_process(delta: float) -> void:
 	if GameState.is_dead:
@@ -130,8 +215,18 @@ func _physics_process(delta: float) -> void:
 	_dash_cooldown_left = maxf(0.0, _dash_cooldown_left - delta)
 	_dash_grace_left = maxf(0.0, _dash_grace_left - delta)
 	_special_cooldown_left = maxf(0.0, _special_cooldown_left - delta)
+	_weapon_cooldown_left = maxf(0.0, _weapon_cooldown_left - delta)
 	if _special_ring_timer > 0.0:
 		_special_ring_timer = maxf(0.0, _special_ring_timer - delta)
+		queue_redraw()
+	if _lance_flash_timer > 0.0:
+		_lance_flash_timer = maxf(0.0, _lance_flash_timer - delta)
+		queue_redraw()
+	if _hammer_flash_timer > 0.0:
+		_hammer_flash_timer = maxf(0.0, _hammer_flash_timer - delta)
+		queue_redraw()
+	if _special_lance_timer > 0.0:
+		_special_lance_timer = maxf(0.0, _special_lance_timer - delta)
 		queue_redraw()
 	var dash_key_pressed := Input.is_key_pressed(KEY_SHIFT)
 	if dash_key_pressed and not _dash_key_was_pressed and _dash_time_left <= 0.0 \
@@ -146,7 +241,7 @@ func _physics_process(delta: float) -> void:
 		if _dash_time_left <= 0.0:
 			_end_dash()
 	else:
-		velocity = input_vector * speed * GameState.speed_mult
+		velocity = input_vector * speed * GameState.speed_mult * GameState.potion_speed_mult
 		velocity.y *= Y_FORESHORTEN
 	move_and_slide()
 	_update_footsteps(delta)
@@ -164,8 +259,9 @@ func _physics_process(delta: float) -> void:
 		or (attack_mouse_pressed and not _attack_mouse_was_pressed)
 	# "Ataque rápido": diferente de antes, o golpe normal NÃO é mais
 	# bloqueado durante o dash — dá pra cancelar o dash com um ataque
-	# (ver _attack, que detecta a janela e usa alcance maior).
-	if attack_pressed and not BuildMode.active:
+	# (ver _attack, que detecta a janela e usa alcance maior). Martelo tem
+	# um cooldown próprio por cima disso (ver _attack) — arma mais lenta.
+	if attack_pressed and not BuildMode.active and _weapon_cooldown_left <= 0.0:
 		_attack()
 	_attack_mouse_was_pressed = attack_mouse_pressed
 
@@ -249,29 +345,92 @@ func _get_input_vector() -> Vector2:
 	var v := Vector2(x, y)
 	return v.normalized() if v.length() > 0.0 else v
 
+## Roteia pro moveset da arma equipada (ver ItemDef.weapon_type). "" ou
+## "espada" (inclusive mãos livres/ferramentas de coleta) = comportamento
+## de sempre, alvo único.
 func _attack() -> void:
 	sprite.play("attack_" + _facing)
 	_attack_anim_timer = ATTACK_ANIM_DURATION
-	# Durante o dash ou na janela curta logo depois, o golpe normal vira
-	# "ataque rápido": mesmo alvo único, mas alcance bem maior (a
-	# AttackArea física já é grande o bastante — ver player.tscn — só muda
-	# o filtro de distância).
+	match _equipped_weapon_type():
+		"lanca":
+			_attack_lance()
+		"martelo":
+			_attack_hammer()
+		_:
+			_attack_sword()
+
+## Espada (e padrão sem arma/com ferramenta de coleta): alvo único. Durante
+## o dash ou na janela curta logo depois, vira "ataque rápido" — mesmo
+## alvo único, mas alcance bem maior (a AttackArea física já é grande o
+## bastante — ver player.tscn — só muda o filtro de distância).
+func _attack_sword() -> void:
 	var quick := _dash_time_left > 0.0 or _dash_grace_left > 0.0
 	var target := _pick_target(QUICK_ATTACK_MAX_DIST if quick else ATTACK_MAX_DIST)
 	if target:
-		target.hit((attack_damage + _equipped_weapon_bonus()) * GameState.attack_damage_mult)
+		target.hit(_current_attack_damage())
 		_spawn_hit_fx(target.global_position + Vector2(0, -12))
 		_hit_stop()
 
-## Ataque especial em área (Q) — golpe giratório da espada. Só funciona com
-## uma arma equipada (weapon_damage_bonus > 0 — ver ItemDef "Arma"): reforça
-## a troca real entre colher (machado/picareta) e lutar melhor (espada) que
-## a Forja introduziu; com picareta/machado equipados, Q não faz nada.
-## Dano é INSTANTÂNEO (aplicado no frame em que Q é apertado) e acerta TODOS
-## os alvos no raio — ao contrário do golpe normal (_pick_target), que
-## escolhe um alvo só. Visual copiado do ataque "Pancada" do Boss da
-## dungeon (boss.gd::_do_slam/_draw): mesmo anel se expandindo, mas aqui é
-## puramente cosmético — o dano já aconteceu antes do anel começar a crescer.
+## Lança: perfura — acerta TODOS os alvos numa linha reta na frente
+## (retângulo comprido e estreito), não só o mais próximo. Sem stun, sem
+## cooldown extra: a identidade dela é alcance + atingir uma fileira
+## inteira, não poder de impacto isolado.
+func _attack_lance() -> void:
+	_lance_flash_timer = LANCE_FLASH_DURATION
+	queue_redraw()
+	var facing_dir := _facing_vector()
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(LANCE_RANGE, LANCE_WIDTH) if absf(facing_dir.x) > 0.5 \
+		else Vector2(LANCE_WIDTH, LANCE_RANGE)
+	var center := global_position + facing_dir * (LANCE_RANGE / 2.0)
+	var hit_any := false
+	for target in _query_hittable(shape, center):
+		target.hit(_current_attack_damage())
+		_spawn_hit_fx(target.global_position + Vector2(0, -12))
+		hit_any = true
+	if hit_any:
+		_hit_stop()
+
+## Martelo: hitbox larga ao redor da AttackArea (acerta todos ali, não só
+## um) e atordoa cada alvo (ver Enemy.stun) — mas o golpe seguinte demora
+## mais (HAMMER_EXTRA_COOLDOWN somado ao tempo normal de animação), então
+## na prática causa menos dano por segundo do que a espada em troca de
+## controlar a luta.
+func _attack_hammer() -> void:
+	_weapon_cooldown_left = HAMMER_EXTRA_COOLDOWN
+	_hammer_flash_timer = HAMMER_FLASH_DURATION
+	queue_redraw()
+	var shape := CircleShape2D.new()
+	shape.radius = HAMMER_RADIUS
+	var hit_any := false
+	for target in _query_hittable(shape, attack_area.global_position):
+		target.hit(_current_attack_damage())
+		_spawn_hit_fx(target.global_position + Vector2(0, -12))
+		if target.has_method("stun"):
+			target.stun(HAMMER_STUN_DURATION)
+		hit_any = true
+	if hit_any:
+		_hit_stop()
+
+## Dano de um golpe agora: base + bônus de arma, upgrades permanentes
+## (GameState.attack_damage_mult), poção de Força temporária (GameState.
+## potion_attack_mult — Mesa de Alquimia, 1.0 sem poção ativa) e o
+## modificador da run atual, se houver (WorldLayers.get_player_damage_mult()
+## — 1.0 fora de runs ou sem modificador, ver RunModifierDef).
+func _current_attack_damage() -> float:
+	return (attack_damage + _equipped_weapon_bonus()) * GameState.attack_damage_mult \
+		* GameState.potion_attack_mult * WorldLayers.get_player_damage_mult()
+
+## Ataque especial em área (Q). Só funciona com uma arma equipada
+## (weapon_damage_bonus > 0 — ver ItemDef "Arma"): reforça a troca real
+## entre colher (machado/picareta) e lutar melhor que a Forja introduziu;
+## com picareta/machado equipados, Q não faz nada. Dano é INSTANTÂNEO
+## (aplicado no frame em que Q é apertado) — ao contrário do golpe normal
+## de alvo único (_pick_target), sempre acerta TODOS os alvos na área.
+## Roteia por arma (ver ItemDef.weapon_type e Convenções): Espada mantém o
+## giro em círculo de sempre (visual copiado da "Pancada" do Boss, ver
+## boss.gd::_do_slam/_draw); Lança vira um cone/linha bem mais longo que o
+## golpe normal dela; Martelo mantém o círculo, mas SEMPRE atordoa.
 func _special_attack() -> void:
 	if _special_cooldown_left > 0.0:
 		return
@@ -280,29 +439,63 @@ func _special_attack() -> void:
 	_special_cooldown_left = SPECIAL_ATTACK_COOLDOWN
 	sprite.play("attack_" + _facing)
 	_attack_anim_timer = ATTACK_ANIM_DURATION
+	var dmg := _current_attack_damage()
+	match _equipped_weapon_type():
+		"lanca":
+			_special_attack_lance(dmg)
+		"martelo":
+			_special_attack_area(dmg, true)
+		_:
+			_special_attack_area(dmg, false)
+
+## Espada e Martelo: círculo 360° ao redor do jogador (raio
+## SPECIAL_ATTACK_RADIUS). `stun_all` só vem true quando é o Martelo —
+## reforça a identidade dele (atordoa) em vez de introduzir algo novo.
+func _special_attack_area(dmg: float, stun_all: bool) -> void:
 	_special_ring_timer = SPECIAL_RING_DURATION
-	var dmg := (attack_damage + _equipped_weapon_bonus()) * GameState.attack_damage_mult
+	queue_redraw()
+	var shape := CircleShape2D.new()
+	shape.radius = SPECIAL_ATTACK_RADIUS
 	var hit_any := false
-	for target in _query_hittable_in_radius(SPECIAL_ATTACK_RADIUS):
+	for target in _query_hittable(shape, global_position):
+		target.hit(dmg)
+		_spawn_hit_fx(target.global_position + Vector2(0, -12))
+		if stun_all and target.has_method("stun"):
+			target.stun(SPECIAL_HAMMER_STUN_DURATION)
+		hit_any = true
+	if hit_any:
+		_hit_stop()
+
+## Lança: mesmo formato do golpe normal dela (retângulo comprido na
+## frente), só que bem maior (SPECIAL_LANCE_RANGE > LANCE_RANGE) — o
+## "nuke" dela é alcance absurdo numa linha, não área ao redor do jogador.
+func _special_attack_lance(dmg: float) -> void:
+	_special_lance_timer = SPECIAL_RING_DURATION
+	queue_redraw()
+	var facing_dir := _facing_vector()
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(SPECIAL_LANCE_RANGE, SPECIAL_LANCE_WIDTH) if absf(facing_dir.x) > 0.5 \
+		else Vector2(SPECIAL_LANCE_WIDTH, SPECIAL_LANCE_RANGE)
+	var center := global_position + facing_dir * (SPECIAL_LANCE_RANGE / 2.0)
+	var hit_any := false
+	for target in _query_hittable(shape, center):
 		target.hit(dmg)
 		_spawn_hit_fx(target.global_position + Vector2(0, -12))
 		hit_any = true
 	if hit_any:
 		_hit_stop()
-	queue_redraw()
 
 ## Busca física direta (não depende do overlap "cacheado" da AttackArea, que
-## só atualiza uma vez por passo de física) — necessária porque o raio do
-## golpe especial é maior e centrado no jogador (360°), diferente do
-## retângulo direcional da AttackArea normal. Mesma collision_mask da
-## AttackArea, pra enxergar os mesmos tipos de alvo (inimigos, recursos,
-## props quebráveis).
-func _query_hittable_in_radius(radius: float) -> Array[Node2D]:
-	var shape := CircleShape2D.new()
-	shape.radius = radius
+## só atualiza uma vez por passo de física) — necessária pra golpes com
+## formato/posição diferentes do retângulo direcional fixo da AttackArea
+## normal: o especial (Q) é um círculo 360° centrado no jogador, a lança é
+## um retângulo comprido na frente, o martelo é um círculo largo na posição
+## da AttackArea. Mesma collision_mask da AttackArea, pra enxergar os
+## mesmos tipos de alvo (inimigos, recursos, props quebráveis) em todos.
+func _query_hittable(shape: Shape2D, center: Vector2) -> Array[Node2D]:
 	var params := PhysicsShapeQueryParameters2D.new()
 	params.shape = shape
-	params.transform = Transform2D(0.0, global_position)
+	params.transform = Transform2D(0.0, center)
 	params.collision_mask = attack_area.collision_mask
 	params.exclude = [get_rid()]
 	var out: Array[Node2D] = []
@@ -319,6 +512,12 @@ func _query_hittable_in_radius(radius: float) -> Array[Node2D]:
 func _equipped_weapon_bonus() -> float:
 	var def: ItemDef = ItemDB.get_def(GameState.equipped_tool_id)
 	return def.weapon_damage_bonus if def else 0.0
+
+## "" (sem arma/com ferramenta de coleta), "espada", "lanca" ou "martelo" —
+## ver ItemDef.weapon_type e _attack().
+func _equipped_weapon_type() -> String:
+	var def: ItemDef = ItemDB.get_def(GameState.equipped_tool_id)
+	return def.weapon_type if def else ""
 
 ## Escolhe UM alvo por golpe (nada de acertar tudo ao redor): pontua os
 ## candidatos por proximidade + alinhamento com a direção encarada, com
@@ -354,12 +553,18 @@ func _facing_vector() -> Vector2:
 		_: return Vector2.DOWN
 
 ## Lanterna craftável (progressão de luz): sem ela, a luz pessoal é só um
-## brilho fraco — suficiente na superfície, apertado nas runs.
+## brilho fraco — suficiente na superfície, apertado nas runs. **Lanterna
+## Avançada** (registrado jul/2026, função da Mesa de Pesquisa — consome
+## a Lanterna base ao craftar, mesmo padrão de "consome o tier anterior"
+## do Machado/Picareta II): alcance e energia maiores que a base.
 func _update_lantern() -> void:
-	var has_lantern := GameState.get_total("lanterna") > 0
+	var has_advanced := GameState.get_total("lanterna_avancada") > 0
+	var has_lantern := has_advanced or GameState.get_total("lanterna") > 0
 	var range_mult := GameState.lantern_range_mult if has_lantern else 1.0
-	torch.set("energy", 1.3 if has_lantern else 0.6)
-	torch.set("range", (180.0 if has_lantern else 110.0) * range_mult)
+	var base_energy := 1.5 if has_advanced else (1.3 if has_lantern else 0.6)
+	var base_range := 260.0 if has_advanced else (180.0 if has_lantern else 110.0)
+	torch.set("energy", base_energy)
+	torch.set("range", base_range * range_mult)
 	light_shafts.visible = has_lantern
 
 
@@ -433,6 +638,13 @@ func _spawn_hit_fx(pos: Vector2) -> void:
 ## comida do inventário" (mudou jul/2026): se o slot atual não for comida,
 ## o clique direito simplesmente não faz nada. Mesma lógica de "selecionar
 ## pra usar" do equipar ferramenta (ver GameState.select_slot).
+## Cada comida restaura o que estiver no PRÓPRIO ItemDef (hunger_restore/
+## heal_amount) — Cogumelo só fome, Refeição Reforçada bem mais fome + cura
+## (revertido jul/2026: uma tentativa anterior de igualar tudo num valor
+## fixo foi desfeita a pedido do usuário — a variação por comida é querida,
+## o problema real era a barra de vida mudando de ESCALA por causa do
+## Amuleto Vital, resolvido separadamente via item passivo — ver
+## GameState._recompute_passive_bonuses).
 func _eat() -> void:
 	var slot: Variant = GameState.inventory[GameState.selected_slot] \
 		if GameState.selected_slot < GameState.inventory.size() else null
@@ -442,7 +654,10 @@ func _eat() -> void:
 	if def == null or def.category != ItemDef.Category.FOOD:
 		return
 	if GameState.remove_resource(slot.item_id, 1):
-		GameState.eat(def.hunger_restore if def.hunger_restore > 0.0 else eat_hunger_restore)
+		# heal_effectiveness_mult (RunModifierDef) só existe durante uma run
+		# com modificador ativo — 1.0 (sem efeito) fora disso.
+		var mult := WorldLayers.get_heal_effectiveness_mult()
+		GameState.eat((def.hunger_restore if def.hunger_restore > 0.0 else eat_hunger_restore) * mult)
 		if def.heal_amount > 0.0:
-			GameState.heal(def.heal_amount)
+			GameState.heal(def.heal_amount * mult)
 		_play_random(sfx_player, EAT_SOUNDS)

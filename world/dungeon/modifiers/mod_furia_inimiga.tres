@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RunModifierDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://world/dungeon/modifiers/run_modifier_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "furia_inimiga"
+display_name = "Fúria Inimiga"
+description = "Inimigos 25% mais rápidos e 15% mais fortes."
+enemy_speed_mult = 1.25
+enemy_damage_mult = 1.15

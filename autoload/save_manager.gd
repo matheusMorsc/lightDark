@@ -120,9 +120,12 @@ func load_game() -> void:
 		return
 
 	# --- GameState ---
-	GameState.max_health = float(data.get("max_health", GameState.max_health))
-	GameState.health = clampf(float(data.get("health", GameState.max_health)), 1.0, GameState.max_health)
-	GameState.hunger = clampf(float(data.get("hunger", GameState.max_hunger)), 0.0, GameState.max_hunger)
+	# Inventário primeiro: max_health hoje é DERIVADO dos itens passivos
+	# guardados nele (Amuleto Vital/II — ver GameState.
+	# _recompute_passive_bonuses), então precisa recalcular ANTES de aplicar
+	# a vida/fome salvas, senão o clamp usaria o max_health errado (100 base,
+	# sem contar os amuletos). _silent_passive_recompute evita o toast
+	# "vida aumentada" disparando toda vez que um save com amuleto carrega.
 	var inv: Array = data.get("inventory", [])
 	GameState.inventory = []
 	GameState.inventory.resize(GameState.INVENTORY_SIZE)
@@ -130,9 +133,13 @@ func load_game() -> void:
 		var slot: Variant = inv[i]
 		if slot is Dictionary and ItemDB.has(String(slot.get("item_id", ""))):
 			GameState.inventory[i] = {"item_id": String(slot["item_id"]), "count": int(slot["count"])}
+	GameState._silent_passive_recompute = true
+	GameState.inventory_changed.emit()
+	GameState._silent_passive_recompute = false
+	GameState.health = clampf(float(data.get("health", GameState.max_health)), 1.0, GameState.max_health)
+	GameState.hunger = clampf(float(data.get("hunger", GameState.max_hunger)), 0.0, GameState.max_hunger)
 	GameState.health_changed.emit(GameState.health, GameState.max_health)
 	GameState.hunger_changed.emit(GameState.hunger, GameState.max_hunger)
-	GameState.inventory_changed.emit()
 	ObjectiveTracker.from_dict(data.get("objectives", {}))
 	UpgradeTracker.from_dict(data.get("upgrades", {}))
 	var tool_id := String(data.get("equipped_tool_id", ""))

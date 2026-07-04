@@ -4,12 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "lanterna"
-display_name = "Lanterna"
-costs = {
-"fibra": 2,
-"madeira": 2
-}
-result_id = "lanterna"
+id = "martelo"
+display_name = "Martelo da Forja"
+costs = {"minerio": 10, "madeira": 2}
+result_id = "martelo"
 result_count = 1
-sort_order = 9
+sort_order = 7
+required_station = "forja"
+required_station_name = "Forja"

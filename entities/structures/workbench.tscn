@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/tables/1.png" id="1"]
 [ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+[ext_resource type="Script" path="res://entities/structures/station_interact.gd" id="3"]
 
 [sub_resource type="CanvasTexture" id="CT_workbench"]
 diffuse_texture = ExtResource("1")
@@ -12,7 +13,13 @@ shader = ExtResource("2")
 [sub_resource type="RectangleShape2D" id="RS_workbench"]
 size = Vector2(26, 12)
 
-[node name="Workbench" type="StaticBody2D" groups=["workbench"]]
+[sub_resource type="CircleShape2D" id="CS_workbench_area"]
+radius = 46.0
+
+[node name="Workbench" type="StaticBody2D"]
+script = ExtResource("3")
+station_group = "workbench"
+station_display_name = "Workbench"
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 material = SubResource("SM_workbench")
@@ -23,3 +30,19 @@ scale = Vector2(2, 2)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -4)
 shape = SubResource("RS_workbench")
+
+[node name="Label" type="Label" parent="."]
+z_index = 200
+z_as_relative = false
+theme_override_font_sizes/font_size = 12
+offset_left = -80.0
+offset_top = -52.0
+offset_right = 80.0
+offset_bottom = -32.0
+horizontal_alignment = 1
+
+[node name="Area2D" type="Area2D" parent="."]
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("CS_workbench_area")

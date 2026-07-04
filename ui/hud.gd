@@ -4,22 +4,46 @@ extends CanvasLayer
 
 @onready var health_bar: ProgressBar = $Control/VBoxContainer/HealthBar
 @onready var hunger_bar: ProgressBar = $Control/VBoxContainer/HungerBar
+## Número exato "atual / máximo" sobreposto na barra (registrado jul/2026,
+## pedido do usuário pra facilitar ver o efeito do Amuleto Vital sem
+## depender só da largura visual do preenchimento — 100→100 cheio e
+## 150→150 cheio parecem IDÊNTICOS numa barra sem número).
+@onready var health_value_label: Label = $Control/VBoxContainer/HealthBar/ValueLabel
+@onready var hunger_value_label: Label = $Control/VBoxContainer/HungerBar/ValueLabel
 @onready var slots_grid: GridContainer = $Control/InventoryPanel/VBox/SlotsGrid
 @onready var tutorial_panel: PanelContainer = $Control/TutorialPanel
 @onready var death_screen: Control = $Control/DeathScreen
 @onready var crafting_panel: PanelContainer = $Control/CraftingPanel
+@onready var crafting_title_label: Label = $Control/CraftingPanel/VBoxContainer/TitleLabel
 @onready var crafting_status_label: Label = $Control/CraftingPanel/VBoxContainer/StatusLabel
+@onready var crafting_recipes_vbox: VBoxContainer = $Control/CraftingPanel/VBoxContainer/Scroll/RecipesVBox
 @onready var chest_panel: PanelContainer = $Control/ChestPanel
 @onready var upgrades_panel: PanelContainer = $Control/UpgradesPanel
 
-## Teclas de craft (o painel se monta sozinho a partir do RecipeDB).
-const RECIPE_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9]
+## Teclas de craft (o painel se monta sozinho a partir do RecipeDB): 1-9 e
+## 0 = 10 dígitos, 10 receitas hoje (bateu certinho). Se uma 11ª receita
+## entrar, tanto a linha do painel quanto o atalho de tecla pra ela somem
+## (_build_recipe_rows e o loop abaixo cortam em RECIPE_KEYS.size()) — bug
+## real que já aconteceu uma vez (jul/2026, ao passar de 9 pra 10 receitas
+## o loop de tecla estourava o array; hoje os dois pontos usam o mesmo
+## limite, então não trava mais, só "esconde" receitas excedentes).
+const RECIPE_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
 const HOTBAR_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
 
 var _restart_key_was_pressed: bool = false
 var _craft_menu_key_was_pressed: bool = false
 var _craft_slot_key_was_pressed: Array[bool] = []
 var _recipes: Array[RecipeDef] = []
+## "" = painel de craft mostra TUDO (aberto via C). Senão, id do grupo de
+## uma estação (ex. "forja") — só mostra receitas daquela estação, aberto
+## via E ao interagir com ela (ver station_interact.gd,
+## open_station_crafting/close_station_crafting abaixo).
+var _crafting_station_filter: String = ""
+## Qual StaticBody2D (station_interact.gd) abriu o painel filtrado agora —
+## precisa saber pra avisar ele de volta quando o painel fechar por outro
+## caminho (ESC, abrir outro painel por cima...), senão a estação achava
+## que ainda estava "aberta" e não respondia a um novo E.
+var _crafting_station_source: Node = null
 var _slot_nodes: Array = []
 var _tool_label: Label
 var _objectives_panel: PanelContainer
@@ -99,7 +123,17 @@ func _ready() -> void:
 	tutorial_panel.visible = false
 
 	# Indicador da ferramenta equipada (abaixo das barras de vida/fome).
+	# `custom_minimum_size`/`clip_text` fixos de propósito (jul/2026,
+	# investigando report do usuário de a barra de vida "mudar de largura"
+	# ao trocar de arma): esse Label é filho do MESMO VBoxContainer das
+	# barras, e o texto muda de tamanho a cada troca de ferramenta ("—
+	# selecione na hotbar" vs "Espada da Forja") — sem um tamanho travado,
+	# corria o risco de influenciar o layout do container. Largura igual à
+	# das barras (200px) pra ficar tudo alinhado.
 	_tool_label = Label.new()
+	_tool_label.custom_minimum_size = Vector2(200, 20)
+	_tool_label.clip_text = true
+	_tool_label.size_flags_horizontal = 0
 	$Control/VBoxContainer.add_child(_tool_label)
 	GameState.tool_equipped.connect(_on_tool_equipped)
 	GameState.inventory_changed.connect(func() -> void: GameState.get_equipped_tool())
@@ -108,6 +142,10 @@ func _ready() -> void:
 	_build_objectives_panel()
 	ObjectiveTracker.progress_changed.connect(_on_objective_progress)
 	ObjectiveTracker.biome_unlocked.connect(_on_biome_unlocked)
+	WorldLayers.run_modifier_rolled.connect(_on_run_modifier_rolled)
+	GameState.potion_applied.connect(_on_potion_applied)
+	GameState.potion_expired.connect(_on_potion_expired)
+	GameState.passive_bonus_changed.connect(_on_passive_bonus_changed)
 
 	_build_upgrades_panel()
 	_build_build_panel()
@@ -201,7 +239,7 @@ func _handle_esc() -> void:
 	elif upgrades_panel.visible:
 		upgrades_panel.visible = false
 	elif crafting_panel.visible:
-		crafting_panel.visible = false
+		_close_crafting_panel()
 	elif BuildMode.active or Engine.get_process_frames() == BuildMode.last_exit_frame:
 		pass  # este ESC pertence ao modo construção
 	else:
@@ -350,9 +388,17 @@ func _apply_volume(v: float) -> void:
 func _handle_crafting_input() -> void:
 	var c_pressed := Input.is_key_pressed(KEY_C)
 	if c_pressed and not _craft_menu_key_was_pressed:
-		crafting_panel.visible = not crafting_panel.visible
-		crafting_status_label.text = ""
 		if crafting_panel.visible:
+			_close_crafting_panel()
+		else:
+			crafting_status_label.text = ""
+			# C sempre abre a visão GERAL (todas as receitas), mesmo que a
+			# última vez tenha sido fechada no meio de um E filtrado por
+			# estação — reseta o filtro pra garantir.
+			_crafting_station_filter = ""
+			_crafting_station_source = null
+			crafting_title_label.text = "Crafting (C para fechar)"
+			crafting_panel.visible = true
 			upgrades_panel.visible = false
 			if _debug_panel:
 				_debug_panel.visible = false
@@ -360,12 +406,17 @@ func _handle_crafting_input() -> void:
 				_map_panel.visible = false
 			if _open_chest:
 				_open_chest.close()
+			_build_recipe_rows()
 	_craft_menu_key_was_pressed = c_pressed
 
 	if not crafting_panel.visible:
 		return
 
-	for i in _recipes.size():
+	# Teclas só cobrem as primeiras RECIPE_KEYS.size() receitas (10 hoje) —
+	# a partir daí só dá pra craftar clicando no botão da linha (ver
+	# _build_recipe_rows). Mesmo limite usado no resize de
+	# _craft_slot_key_was_pressed.
+	for i in mini(_recipes.size(), RECIPE_KEYS.size()):
 		var pressed := Input.is_key_pressed(RECIPE_KEYS[i])
 		if pressed and not _craft_slot_key_was_pressed[i]:
 			_try_craft(i)
@@ -377,10 +428,18 @@ func _try_craft(index: int) -> void:
 		crafting_status_label.text = "Precisa estar perto da %s." % recipe.required_station_name
 		return
 	if GameState.craft(recipe.id, recipe.costs, recipe.result_id, recipe.result_count):
+		# bonus_max_health/heal_on_craft: caminho antigo, sem receita nenhuma
+		# usando mais (Amuleto Vital/II viraram itens PASSIVE reais em
+		# jul/2026 — ver ItemDef.Category.PASSIVE e GameState.
+		# _recompute_passive_bonuses). Deixado aqui só de propósito genérico,
+		# caso uma receita futura precise de um efeito instantâneo puro sem
+		# virar item físico.
 		if recipe.bonus_max_health > 0.0:
 			GameState.max_health += recipe.bonus_max_health
 		if recipe.heal_on_craft > 0.0:
 			GameState.heal(recipe.heal_on_craft)
+		if recipe.potion_channel != "":
+			GameState.apply_potion(recipe.potion_channel, recipe.potion_mult, recipe.potion_duration, recipe.display_name)
 		crafting_status_label.text = "Craftado: %s!" % recipe.display_name
 	else:
 		crafting_status_label.text = "Recursos insuficientes para %s." % recipe.display_name
@@ -399,30 +458,122 @@ func _near_station(group: String) -> bool:
 			return true
 	return false
 
-## Monta as linhas do painel de craft a partir do RecipeDB (data-driven):
-## remove as linhas estáticas da cena e gera uma por receita carregada.
+## Abre o painel de craft filtrado por UMA estação (chamado por
+## station_interact.gd via call_group("hud", ...) ao apertar E perto dela)
+## — registrado jul/2026. Mostra só as receitas com `required_station ==
+## group`; se `group == "workbench"` (que não tem receita nenhuma, só
+## desbloqueia estruturas), lista também as StructureDef com
+## `requires_workbench_nearby` como linhas informativas (não craftáveis
+## daqui, só um lembrete de "aperte B pra construir").
+func open_station_crafting(group: String, display_name: String, source: Node) -> void:
+	crafting_status_label.text = ""
+	crafting_panel.visible = true
+	upgrades_panel.visible = false
+	if _debug_panel:
+		_debug_panel.visible = false
+	if _map_panel:
+		_map_panel.visible = false
+	if _open_chest:
+		_open_chest.close()
+	_crafting_station_filter = group
+	_crafting_station_source = source
+	crafting_title_label.text = "%s (E fecha)" % display_name
+	_build_recipe_rows()
+
+## Fecha o painel de craft filtrado, mas SÓ se quem pediu pra fechar foi
+## quem abriu (evita uma estação fechar o painel de outra por engano, caso
+## dois E's se atropelem de algum jeito).
+func close_station_crafting(source: Node) -> void:
+	if _crafting_station_source != source:
+		return
+	_close_crafting_panel()
+
+## Fecha o painel de craft e limpa o estado de filtro por estação, se
+## houver. Usado pelo ESC e por qualquer painel que force fechar o craft
+## ao abrir por cima (upgrades, build, mapa, baú...) — sem isso, fechar o
+## craft filtrado por um caminho que não seja o próprio E/C deixava a
+## estação (`station_interact.gd::is_open`) sem saber que fechou, e ela só
+## reagiria ao PRÓXIMO E como se fosse fechar algo que já estava fechado.
+func _close_crafting_panel() -> void:
+	crafting_panel.visible = false
+	if _crafting_station_source != null and is_instance_valid(_crafting_station_source):
+		_crafting_station_source.is_open = false
+	_crafting_station_filter = ""
+	_crafting_station_source = null
+
+## Monta as linhas do painel de craft a partir do RecipeDB (data-driven).
+## Virou clicável/scrollável (registrado jul/2026, mesmo estilo do painel de
+## progressão — tecla U, e do painel de construção — tecla B): antes as
+## linhas eram só ícone+texto (sem clique) e cortavam em RECIPE_KEYS.size()
+## (10) — qualquer receita além disso ficava invisível e impossível de
+## craftar (ia acontecer de novo ao adicionar as receitas da Mesa de
+## Pesquisa, que levam o total a 12). Agora a lista mostra TODAS as
+## receitas (ou só as da estação, se `_crafting_station_filter` estiver
+## setado — ver open_station_crafting), clicar crafta na hora; tecla 1..0
+## continua funcionando pras 10 primeiras da lista GERAL (ver
+## _handle_crafting_input), só não tem mais limite de visibilidade.
 func _build_recipe_rows() -> void:
-	var vbox := crafting_status_label.get_parent()
-	for n in ["Recipe1Row", "Recipe2Row", "Recipe3Row"]:
-		var row := vbox.get_node_or_null(n)
-		if row:
-			row.queue_free()
+	for child in crafting_recipes_vbox.get_children():
+		child.queue_free()
 	_recipes = RecipeDB.get_all()
 	_craft_slot_key_was_pressed.resize(mini(_recipes.size(), RECIPE_KEYS.size()))
-	for i in mini(_recipes.size(), RECIPE_KEYS.size()):
-		var r: RecipeDef = _recipes[i]
-		var row := HBoxContainer.new()
-		var icon_rect := TextureRect.new()
-		icon_rect.custom_minimum_size = Vector2(24, 24)
-		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon_rect.texture = r.icon if r.icon else ItemDB.get_icon(r.result_id)
-		row.add_child(icon_rect)
-		var lbl := Label.new()
-		var station_hint := (" (perto da %s)" % r.required_station_name) if r.required_station != "" else ""
-		lbl.text = "[%d] %s — %s%s" % [i + 1, r.display_name, _costs_text(r.costs), station_hint]
-		row.add_child(lbl)
-		vbox.add_child(row)
-	vbox.move_child(crafting_status_label, -1)
+	var shown := 0
+	for i in _recipes.size():
+		var r := _recipes[i]
+		# Bug real (jul/2026, achado pelo usuário via screenshot): a condição
+		# antiga só escondia receita de OUTRA estação quando já estava numa
+		# visão FILTRADA (E numa estação) — a visão GERAL (C, filter == "")
+		# nunca escondia nada, só mostrava o hint "(perto de X)" e deixava
+		# craftar clicando mesmo longe da estação (barrado só na hora do
+		# craft, em _try_craft). Resultado: Amuleto Vital, Lanterna Avançada
+		# etc. continuavam aparecendo no C geral depois de ganharem
+		# required_station. Comparação direta (r.required_station ==
+		# _crafting_station_filter) resolve os dois casos de uma vez: geral
+		# (filter == "") só mostra receita sem estação; filtrado só mostra a
+		# da própria estação.
+		if r.required_station != _crafting_station_filter:
+			continue
+		crafting_recipes_vbox.add_child(_build_recipe_row(i, r))
+		shown += 1
+	# Workbench não tem receita própria — o que ela desbloqueia são
+	# ESTRUTURAS (Baú Grande, Poste de Luz), que são construídas pelo modo B,
+	# não craftadas por aqui. Removido de propósito (jul/2026, pedido do
+	# usuário): listar as estruturas aqui como lembrete informativo confundia
+	# com "dá pra craftar no C" — agora estrutura NUNCA aparece na Crafting,
+	# só no modo B (ver BuildMode/_refresh_build_panel), onde de fato exige
+	# o upgrade "constr_workbench" comprado antes de sequer listar.
+	if shown == 0:
+		var empty_lbl := Label.new()
+		empty_lbl.text = "Nada disponível aqui ainda."
+		empty_lbl.modulate = Color(0.7, 0.7, 0.7)
+		crafting_recipes_vbox.add_child(empty_lbl)
+
+func _build_recipe_row(index: int, r: RecipeDef) -> Control:
+	var row := HBoxContainer.new()
+	row.name = "Recipe%d" % index
+	var icon_rect := TextureRect.new()
+	icon_rect.custom_minimum_size = Vector2(24, 24)
+	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	if r.icon:
+		icon_rect.texture = r.icon
+	elif r.potion_channel != "":
+		icon_rect.texture = PlaceholderIcons.potion_icon(r.potion_channel)
+	else:
+		icon_rect.texture = ItemDB.get_icon(r.result_id)
+	row.add_child(icon_rect)
+	var btn := Button.new()
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	# Hint "(perto da X)" removido (jul/2026): agora que _build_recipe_rows
+	# escova por `required_station == _crafting_station_filter`, uma receita
+	# com estação só aparece OU na visão filtrada dessa estação (E) OU nunca
+	# na geral (C) — o caso "geral mostrando receita de estação" que pedia
+	# o hint não existe mais.
+	var tag := "[%d]" % (index + 1) if index < RECIPE_KEYS.size() else "[clique]"
+	btn.text = "%s %s — %s" % [tag, r.display_name, _costs_text(r.costs)]
+	btn.pressed.connect(func() -> void: _try_craft(index))
+	row.add_child(btn)
+	return row
 
 func _costs_text(costs: Dictionary) -> String:
 	var parts: PackedStringArray = []
@@ -439,7 +590,7 @@ func _handle_upgrades_input() -> void:
 	if u_pressed and not _upgrades_key_was_pressed:
 		upgrades_panel.visible = not upgrades_panel.visible
 		if upgrades_panel.visible:
-			crafting_panel.visible = false
+			_close_crafting_panel()
 			if _debug_panel:
 				_debug_panel.visible = false
 			if _map_panel:
@@ -507,22 +658,37 @@ func _build_upgrade_row(def: UpgradeDef) -> Control:
 	return row
 
 ## Menu de cheat (F1, só build de debug): um botão "+10" por item de
-## categoria RESOURCE (data-driven via ItemDB.get_all() — item novo aparece
-## sozinho, nada aqui precisa mudar) + cura/saciedade cheia. Existe só pra
-## testar a progressão sem precisar farmar em runs de verdade.
+## categoria RESOURCE OU FOOD (data-driven via ItemDB.get_all() — item novo
+## aparece sozinho, nada aqui precisa mudar; FOOD entrou jul/2026 pra
+## Cogumelo/Refeição Reforçada aparecerem também, antes só recurso) + cura/
+## saciedade cheia. Existe só pra testar a progressão sem precisar farmar em
+## runs de verdade.
+## Painel ancorado no TOPO-ESQUERDA (jul/2026, era CENTER_LEFT) + lista
+## dentro de um ScrollContainer com altura máxima: a lista de botões cresceu
+## (Lanterna Avançada, Resíduo Sombrio, agora Cogumelo/Refeição...) e o
+## painel centralizado verticalmente passou a cortar no canto inferior
+## esquerdo da tela em resoluções menores — mesmo padrão de scroll já usado
+## no painel de craft/construção.
 func _build_debug_panel() -> void:
 	_debug_panel = PanelContainer.new()
 	$Control.add_child(_debug_panel)
 	_debug_panel.visible = false
-	_debug_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT, Control.PRESET_MODE_MINSIZE, 10)
-	var vbox := VBoxContainer.new()
-	_debug_panel.add_child(vbox)
+	_debug_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT, Control.PRESET_MODE_MINSIZE, 10)
+	var outer_vbox := VBoxContainer.new()
+	_debug_panel.add_child(outer_vbox)
 	var title := Label.new()
 	title.text = "CHEAT (F1 fecha) — só em build de debug"
 	title.add_theme_font_size_override("font_size", 16)
-	vbox.add_child(title)
+	outer_vbox.add_child(title)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(240, 420)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	outer_vbox.add_child(scroll)
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(vbox)
 	for def in ItemDB.get_all():
-		if def.category != ItemDef.Category.RESOURCE:
+		if def.category != ItemDef.Category.RESOURCE and def.category != ItemDef.Category.FOOD:
 			continue
 		var btn := Button.new()
 		btn.text = "+10 %s" % def.display_name
@@ -543,7 +709,7 @@ func _handle_debug_input() -> void:
 	if f1_pressed and not _debug_key_was_pressed:
 		_debug_panel.visible = not _debug_panel.visible
 		if _debug_panel.visible:
-			crafting_panel.visible = false
+			_close_crafting_panel()
 			upgrades_panel.visible = false
 			if _map_panel:
 				_map_panel.visible = false
@@ -555,22 +721,37 @@ func _handle_debug_input() -> void:
 ## dois raramente coexistem e um fecha o outro ao abrir, ver abaixo). Só
 ## visível enquanto BuildMode.active; reconstrói a lista toda vez que o
 ## modo abre (estruturas desbloqueadas podem ter mudado desde a última vez).
+## Virou clicável/scrollável (registrado jul/2026, mesmo estilo do painel de
+## progressão — tecla U): antes era só texto (Label) numerado, e com 11
+## estruturas (Baú Grande/Poste de Luz) já não cabiam mais 1 tecla por
+## item — clicar na linha sempre funciona, não importa quantas estruturas
+## existam. Tecla 1..0 e scroll do mouse continuam funcionando também (ver
+## BuildMode._process/_unhandled_input) — o clique é só mais uma forma.
 func _build_build_panel() -> void:
 	_build_panel = PanelContainer.new()
 	$Control.add_child(_build_panel)
 	_build_panel.visible = false
+	_build_panel.add_theme_stylebox_override("panel", crafting_panel.get_theme_stylebox("panel"))
 	# CENTER_LEFT como o painel de cheat (F1) — os dois raramente abrem ao
 	# mesmo tempo; evita qualquer risco de colidir com hotbar/objetivos.
+	# Fica na borda esquerda (não centralizado como o de progressão) de
+	# propósito: o jogador precisa continuar vendo o ghost seguindo o mouse
+	# no resto da tela pra posicionar a construção depois de escolher.
 	_build_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT, Control.PRESET_MODE_MINSIZE, 10)
+	_build_panel.custom_minimum_size = Vector2(340, 420)
+	var scroll := ScrollContainer.new()
+	_build_panel.add_child(scroll)
 	_build_vbox = VBoxContainer.new()
-	_build_panel.add_child(_build_vbox)
+	_build_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_build_vbox.add_theme_constant_override("separation", 4)
+	scroll.add_child(_build_vbox)
 
 func _update_build_panel() -> void:
 	if _build_panel == null:
 		return
 	if BuildMode.active and not _build_was_active:
 		_refresh_build_panel()
-		crafting_panel.visible = false
+		_close_crafting_panel()
 		upgrades_panel.visible = false
 		if _debug_panel:
 			_debug_panel.visible = false
@@ -583,27 +764,47 @@ func _update_build_panel() -> void:
 	if BuildMode.active:
 		_highlight_build_selection()
 
+## As teclas 1..0 só cobrem 10 estruturas (ver BuildMode.BUILD_KEYS); a
+## partir da 11ª (jul/2026, com Baú Grande/Poste de Luz) a linha mostra
+## "[scroll]" em vez de um número que não existe — clicar na linha sempre
+## funciona independente disso (ver _build_row abaixo).
 func _refresh_build_panel() -> void:
 	for child in _build_vbox.get_children():
 		child.queue_free()
+	var key_count := BuildMode.get_key_count()
 	var title := Label.new()
-	title.text = "Construção — [1..%d] escolhe | clique: constrói | B: sai" % BuildMode.get_available().size()
-	title.add_theme_font_size_override("font_size", 14)
+	title.text = "Construção — clique escolhe (ou [1..%d]/scroll) | B: sai" % mini(BuildMode.get_available().size(), key_count)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD
+	title.add_theme_font_size_override("font_size", 15)
 	_build_vbox.add_child(title)
 	for i in BuildMode.get_available().size():
 		var def: StructureDef = BuildMode.get_available()[i]
-		var lbl := Label.new()
-		lbl.name = "Row%d" % i
-		lbl.text = "[%d] %s — %s" % [i + 1, def.display_name, BuildMode.get_cost_text(def)]
-		_build_vbox.add_child(lbl)
+		var tag := "[%d]" % (i + 1) if i < key_count else "[scroll]"
+		_build_vbox.add_child(_build_row(i, def, tag))
 	_highlight_build_selection()
 
-## Destaca a linha da estrutura selecionada agora (mesmo padrão do hotbar).
+## Uma linha do painel de construção: botão inteiro clicável (mesmo padrão
+## do "Comprar" da progressão) que seleciona a estrutura direto — não
+## depende de saber qual tecla apertar. `BuildMode.select_index` já ignora
+## cliques repetidos no item já selecionado.
+func _build_row(index: int, def: StructureDef, tag: String) -> Button:
+	var btn := Button.new()
+	btn.name = "Row%d" % index
+	btn.text = "%s %s — %s" % [tag, def.display_name, BuildMode.get_cost_text(def)]
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.pressed.connect(func() -> void:
+		BuildMode.select_index(index)
+		_highlight_build_selection()
+	)
+	return btn
+
+## Destaca o botão da estrutura selecionada agora (mesmo padrão da hotbar).
 func _highlight_build_selection() -> void:
 	var sel := BuildMode.get_selected_index()
 	for i in _build_vbox.get_child_count() - 1:
 		var row := _build_vbox.get_child(i + 1)  # +1 pula o título
-		if row is Label:
+		if row is Button:
 			row.modulate = Color(1.35, 1.3, 0.85) if i == sel else Color.WHITE
 
 ## Mapa simples (M alterna): esquema de cima pra baixo da região ativa —
@@ -633,7 +834,7 @@ func _handle_map_input() -> void:
 	if m_pressed and not _map_key_was_pressed:
 		_map_panel.visible = not _map_panel.visible
 		if _map_panel.visible:
-			crafting_panel.visible = false
+			_close_crafting_panel()
 			upgrades_panel.visible = false
 			if _debug_panel:
 				_debug_panel.visible = false
@@ -695,6 +896,39 @@ func _show_toast(text: String, font_size: int = 34) -> void:
 func _on_biome_unlocked(biome: int) -> void:
 	_show_toast("Bioma %d desbloqueado!" % biome)
 
+## Anúncio do modificador da run (ver RunModifierDef/WorldLayers.
+## active_modifier) — dispara uma vez ao entrar no talismã, vale pra todos
+## os mapas até voltar pra base.
+func _on_run_modifier_rolled(mod: RunModifierDef) -> void:
+	_show_toast("Modificador da run: %s\n%s" % [mod.display_name, mod.description], 26)
+
+## Poções da Mesa de Alquimia (registrado jul/2026, ver GameState.
+## apply_potion): toast ao beber e ao expirar, mesmo padrão do aviso de
+## bioma desbloqueado — feedback claro de "o buff começou/acabou" sem
+## precisar de uma barra de status dedicada ainda.
+const _POTION_CHANNEL_NAMES := {
+	"speed": "Velocidade",
+	"attack": "Força",
+	"defense": "Proteção",
+}
+
+func _on_potion_applied(display_name: String, duration: float) -> void:
+	_show_toast("%s (%ds)" % [display_name, int(duration)], 24)
+
+func _on_potion_expired(channel: String) -> void:
+	var name: String = _POTION_CHANNEL_NAMES.get(channel, channel)
+	_show_toast("Efeito de %s acabou." % name, 20)
+
+## Itens PASSIVOS (Amuleto Vital/II — ver GameState._recompute_passive_
+## bonuses): toast ao ganhar OU perder o bônus de vida máxima, mesmo
+## padrão de feedback dos toasts de poção. Ganhar (craftar, tirar de um
+## baú) e perder (dropar, guardar num baú) disparam os dois.
+func _on_passive_bonus_changed(delta: float) -> void:
+	if delta > 0.0:
+		_show_toast("Vida máxima aumentada em %d" % int(delta), 24)
+	else:
+		_show_toast("Vida máxima reduzida em %d" % int(-delta), 24)
+
 func _on_tool_equipped(item_id: String) -> void:
 	if item_id == "":
 		_tool_label.text = "Ferramenta: — (selecione na hotbar)"
@@ -704,15 +938,17 @@ func _on_tool_equipped(item_id: String) -> void:
 func _on_health_changed(current: float, max_value: float) -> void:
 	health_bar.max_value = max_value
 	health_bar.value = current
+	health_value_label.text = "%d / %d" % [int(round(current)), int(round(max_value))]
 
 func _on_hunger_changed(current: float, max_value: float) -> void:
 	hunger_bar.max_value = max_value
 	hunger_bar.value = current
+	hunger_value_label.text = "%d / %d" % [int(round(current)), int(round(max_value))]
 
 ## Abre o painel do baú (chamado por chest.gd via call_group("hud", ...)):
 ## liga cada slot da grade ao inventário DESSE baú e desenha o conteúdo.
 func show_chest_panel(chest: Node) -> void:
-	crafting_panel.visible = false
+	_close_crafting_panel()
 	upgrades_panel.visible = false
 	if _debug_panel:
 		_debug_panel.visible = false
@@ -736,13 +972,20 @@ func hide_chest_panel(chest: Node = null) -> void:
 	_open_chest = null
 	chest_panel.visible = false
 
+## A grade tem 40 nós fixos (pra caber o Baú Grande, ver chest.gd
+## slot_count) mas um baú normal só usa os 20 primeiros — os excedentes
+## precisam ficar ESCONDIDOS (não só "sem dado"), senão um baú pequeno
+## mostraria 20 slots fantasmas vazios (ou, pior, com lixo de uma sessão
+## anterior de Baú Grande) no fim da grade.
 func _update_chest_panel() -> void:
 	if _open_chest == null:
 		return
+	var capacity: int = _open_chest.inventory.size()
 	for i in _chest_slot_nodes.size():
-		if i >= _open_chest.inventory.size():
-			break
-		_chest_slot_nodes[i].set_slot_data(_open_chest.inventory[i])
+		var slot_node = _chest_slot_nodes[i]
+		slot_node.visible = i < capacity
+		if i < capacity:
+			slot_node.set_slot_data(_open_chest.inventory[i])
 
 ## Redesenha a grade inteira a partir de GameState.inventory — chamado toda
 ## vez que qualquer slot muda (coleta, craft, comer, arrastar).

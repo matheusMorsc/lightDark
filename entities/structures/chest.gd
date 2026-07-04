@@ -1,20 +1,31 @@
 extends StaticBody2D
-## Baú: estrutura construível na base com inventário próprio (20 slots).
-## F abre/fecha a UI de transferência quando este é o baú mais próximo ao
-## alcance do jogador (mesmo padrão "só o mais próximo responde" usado nos
-## portais de run — ver entities/dungeon/run_portal.gd). O conteúdo é
-## persistido pelo SaveManager (grupo "chests"), à parte da posição/id que
-## já é coberta pelo grupo "player_built".
+## Baú: estrutura construível na base com inventário próprio. F abre/fecha
+## a UI de transferência quando este é o baú mais próximo ao alcance do
+## jogador (mesmo padrão "só o mais próximo responde" usado nos portais de
+## run — ver entities/dungeon/run_portal.gd). O conteúdo é persistido pelo
+## SaveManager (grupo "chests"), à parte da posição/id que já é coberta
+## pelo grupo "player_built".
 
 signal inventory_changed
 
-const SLOT_COUNT: int = 20
+## Virou @export (registrado jul/2026, ver "Baú Grande" — função da
+## Workbench): antes era const fixa em 20; agora cada cena de baú define o
+## próprio tamanho (baú normal = 20, Baú Grande = 40). O painel do HUD
+## (`ui/hud.gd::_update_chest_panel`) já lia por `_open_chest.inventory.size()`
+## com `break` ao passar do limite, e o SaveManager já usava
+## `node.inventory.size()` — nenhum dos dois precisou mudar. Só o
+## `ChestPanel/VBox/SlotsGrid` em `ui/hud.tscn` precisou ganhar mais slots
+## (20 → 40) pra ter nó suficiente pro Baú Grande mostrar tudo.
+@export var slot_count: int = 20
 
 ## Texturas do sprite fechado/aberto (feedback visual ao abrir a UI).
 @export var closed_texture: Texture2D
 @export var open_texture: Texture2D
+## Texto do prompt flutuante (F) — permite diferenciar "Abrir baú" de "Abrir
+## Baú Grande" sem precisar de uma classe/script separada.
+@export var open_label: String = "F — Abrir baú"
 
-## Array de tamanho fixo SLOT_COUNT: cada slot é null ou
+## Array de tamanho fixo `slot_count`: cada slot é null ou
 ## {"item_id": String, "count": int} — mesmo formato do GameState.inventory.
 var inventory: Array = []
 var is_open: bool = false
@@ -28,8 +39,8 @@ var _f_was_pressed: bool = true  # true evita disparo no frame em que spawna
 
 func _ready() -> void:
 	add_to_group("chests")
-	inventory.resize(SLOT_COUNT)
-	label.text = "F — Abrir baú"
+	inventory.resize(slot_count)
+	label.text = open_label
 	label.hide()
 	area.body_entered.connect(_on_body_entered)
 	area.body_exited.connect(_on_body_exited)

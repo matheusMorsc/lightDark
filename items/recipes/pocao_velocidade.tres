@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RecipeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://items/recipe_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "pocao_velocidade"
+display_name = "Poção de Velocidade"
+costs = {
+"fibra": 5,
+"comida": 2
+}
+result_id = ""
+result_count = 1
+sort_order = 13
+required_station = "mesa_alquimia"
+required_station_name = "Mesa de Alquimia"
+potion_channel = "speed"
+potion_mult = 1.35
+potion_duration = 60.0

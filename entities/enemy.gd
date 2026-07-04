@@ -51,6 +51,33 @@ const HIT_SOUNDS: Array[AudioStream] = [
 ## primeiro hit.
 var base_modulate: Color = Color.WHITE
 
+## Afixos de elite (registrado jul/2026, ver run_map.gd::ELITE_AFFIXES) —
+## setado de fora ANTES de entrar na árvore, então _ready() já pode aplicar
+## o que for imediato (ex: "fast"). Vazio = inimigo comum, sem afixo.
+var elite_affixes: Array[String] = []
+const AFFIX_DISPLAY_NAMES := {
+	"fast": "Rápido",
+	"vampiric": "Vampírico",
+	"shielded": "Blindado",
+	"regenerating": "Regenerativo",
+	"explosive": "Explosivo",
+}
+const FAST_SPEED_MULT := 1.4
+const VAMPIRIC_HEAL_PCT := 0.5
+const SHIELD_DAMAGE_REDUCTION := 0.35
+const REGEN_PCT_PER_SECOND := 0.03
+const EXPLOSIVE_DEATH_RADIUS := 70.0
+const EXPLOSIVE_DEATH_DAMAGE := 20.0
+const ELITE_LABEL_COLOR := Color(1.0, 0.65, 0.65)
+var _affix_label: Label = null
+
+## Atordoamento (registrado jul/2026, aplicado pelo Martelo da Forja — ver
+## player.gd::_attack_hammer): enquanto >0, o inimigo não persegue, não
+## ataca e não se move — só o knockback/física residual continua. Cor
+## amarelada substitui o tingimento normal enquanto durar.
+var _stun_time_left: float = 0.0
+const STUN_TINT := Color(1.0, 0.95, 0.4)
+
 var health: float
 var _facing: String = "down"
 var _anim_lock: float = 0.0
@@ -81,28 +108,73 @@ func _ready() -> void:
 	attack_timer.timeout.connect(_on_attack_timer_timeout)
 	sprite.sprite_frames = _build_sprite_frames(kit_id)
 	sprite.play("idle_" + _facing)
+	if not elite_affixes.is_empty():
+		if "fast" in elite_affixes:
+			speed *= FAST_SPEED_MULT
+		_spawn_affix_label()
+	queue_redraw()
+
+## Label flutuante listando os afixos (graybox: sem ícone, só texto) —
+## mesma ideia do "Requer X" dos nós de recurso, mas sempre visível
+## enquanto o elite estiver vivo, não só ao passar o mouse.
+func _spawn_affix_label() -> void:
+	_affix_label = Label.new()
+	var names: Array = []
+	for tag in elite_affixes:
+		names.append(AFFIX_DISPLAY_NAMES.get(tag, tag))
+	_affix_label.text = " / ".join(names)
+	_affix_label.add_theme_font_size_override("font_size", 13)
+	_affix_label.add_theme_color_override("font_color", ELITE_LABEL_COLOR)
+	_affix_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	_affix_label.add_theme_constant_override("outline_size", 4)
+	_affix_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_affix_label.position = Vector2(-60, -58)
+	_affix_label.custom_minimum_size = Vector2(120, 0)
+	add_child(_affix_label)
 
 func _physics_process(delta: float) -> void:
 	if _dead:
 		return
+	if "regenerating" in elite_affixes and health < max_health:
+		health = minf(max_health, health + max_health * REGEN_PCT_PER_SECOND * delta)
+		queue_redraw()
 	if _player == null or not is_instance_valid(_player):
 		velocity = Vector2.ZERO
 		move_and_slide()
 		return
 
-	match behavior:
-		"ranged":
-			_process_ranged()
-		"explosive":
-			_process_explosive(delta)
-		_:
-			_process_melee()
+	if _stun_time_left > 0.0:
+		_stun_time_left = maxf(0.0, _stun_time_left - delta)
+		attack_timer.stop()
+		velocity = Vector2.ZERO
+		if _stun_time_left <= 0.0:
+			sprite.modulate = base_modulate
+	else:
+		match behavior:
+			"ranged":
+				_process_ranged()
+			"explosive":
+				_process_explosive(delta)
+			_:
+				_process_melee()
 
-	# Empurrão de quando apanha (decai rápido).
+	# Empurrão de quando apanha (decai rápido) — continua valendo mesmo
+	# atordoado, senão um golpe de martelo nunca empurra ninguém.
 	velocity += _knockback
 	_knockback = _knockback.move_toward(Vector2.ZERO, 900.0 * delta)
 	move_and_slide()
 	_update_animation(velocity.length() > 4.0, delta)
+
+## Atordoa por `duration` segundos (ver var _stun_time_left acima).
+## Chamado de fora (player.gd::_attack_hammer) — mesma interface simples
+## de hit(), só que opcional: quem ataca confere has_method("stun") antes
+## de chamar, então nem todo alvo precisa suportar isso (ex.: nós de
+## recurso e o Boss não têm esse método, ficam imunes de graça).
+func stun(duration: float) -> void:
+	if _dead:
+		return
+	_stun_time_left = maxf(_stun_time_left, duration)
+	sprite.modulate = STUN_TINT
 
 func _process_melee() -> void:
 	var distance := global_position.distance_to(_player.global_position)
@@ -172,7 +244,16 @@ func _on_attack_timer_timeout() -> void:
 	var distance := global_position.distance_to(_player.global_position)
 	if distance <= attack_radius:
 		GameState.take_damage(contact_damage)
+		_apply_vampiric_heal(contact_damage)
 		_play_attack_anim()
+
+## Afixo "vampiric": cura uma fração do dano causado ao jogador. Só cobre
+## dano de contato (melee) e explosão (ver _explode) — projétil não cura
+## em v1, o dano dele acontece dentro de enemy_projectile.gd, fora daqui.
+func _apply_vampiric_heal(damage_dealt: float) -> void:
+	if "vampiric" in elite_affixes and not _dead:
+		health = minf(max_health, health + damage_dealt * VAMPIRIC_HEAL_PCT)
+		queue_redraw()
 
 func _shoot() -> void:
 	var distance := global_position.distance_to(_player.global_position)
@@ -242,7 +323,11 @@ func _play_attack_anim() -> void:
 		_anim_lock = 0.3
 
 func hit(amount: float) -> void:
+	if "shielded" in elite_affixes:
+		amount *= (1.0 - SHIELD_DAMAGE_REDUCTION)
 	health -= amount
+	DamageNumbers.spawn(get_parent(), global_position, amount)
+	queue_redraw()
 	if _player and is_instance_valid(_player):
 		_knockback = (global_position - _player.global_position).normalized() * 170.0
 	if health <= 0.0:
@@ -252,8 +337,22 @@ func hit(amount: float) -> void:
 		_flash_tween.kill()
 	sprite.modulate = Color(1.6, 1.6, 1.6)
 	_flash_tween = create_tween()
-	_flash_tween.tween_property(sprite, "modulate", base_modulate, 0.2)
+	# Se ainda estiver atordoado depois do flash, volta pro amarelo do
+	# stun em vez da cor normal — senão um segundo golpe durante o stun
+	# "cancelaria" a cor visualmente antes do efeito acabar de verdade.
+	_flash_tween.tween_property(sprite, "modulate", STUN_TINT if _stun_time_left > 0.0 else base_modulate, 0.2)
 	_play_random(sfx_player, HIT_SOUNDS)
+
+## Barra de vida flutuante (registrado jul/2026, pedido do usuário — mesma
+## receita já usada pelo Boss em boss.gd::_draw(), só menor). Redesenhada
+## sempre que `health` muda (hit, regen do afixo, cura vampírica) via
+## queue_redraw() nesses pontos.
+func _draw() -> void:
+	if _dead:
+		return
+	var w := 36.0
+	draw_rect(Rect2(-w / 2.0, -50.0, w, 5.0), Color(0, 0, 0, 0.6))
+	draw_rect(Rect2(-w / 2.0 + 1.0, -49.0, (w - 2.0) * clampf(health / max_health, 0.0, 1.0), 3.0), Color(0.9, 0.25, 0.25))
 
 ## Fica "morto" imediatamente (sem colisão) mas só remove o nó depois da
 ## animação/som de morte — senão corta tudo no meio.
@@ -261,6 +360,10 @@ func _die() -> void:
 	_dead = true
 	set_physics_process(false)
 	collision_shape.set_deferred("disabled", true)
+	if _affix_label:
+		_affix_label.hide()
+	if "explosive" in elite_affixes:
+		_explosive_death()
 	var death_anim := "death_" + _facing
 	if sprite.sprite_frames and sprite.sprite_frames.has_animation(death_anim):
 		sprite.play(death_anim)
@@ -269,6 +372,14 @@ func _die() -> void:
 	_play_random(sfx_player, HIT_SOUNDS)
 	await get_tree().create_timer(0.4).timeout
 	queue_free()
+
+## Afixo "explosive": ao morrer, dá um último susto em área (não confundir
+## com behavior == "explosive", que é o kamikaze inteiro — este é só o
+## estouro final de qualquer elite que tenha sorteado o afixo).
+func _explosive_death() -> void:
+	if is_instance_valid(_player) and global_position.distance_to(_player.global_position) <= EXPLOSIVE_DEATH_RADIUS:
+		GameState.take_damage(EXPLOSIVE_DEATH_DAMAGE)
+	_spawn_explosion_fx()
 
 func _play_random(player: AudioStreamPlayer2D, sounds: Array[AudioStream]) -> void:
 	if sounds.is_empty():

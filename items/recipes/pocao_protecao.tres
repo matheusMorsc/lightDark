@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RecipeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://items/recipe_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "pocao_protecao"
+display_name = "Poção de Proteção"
+costs = {
+"pedra": 5,
+"fibra": 3
+}
+result_id = ""
+result_count = 1
+sort_order = 15
+required_station = "mesa_alquimia"
+required_station_name = "Mesa de Alquimia"
+potion_channel = "defense"
+potion_mult = 0.7
+potion_duration = 60.0

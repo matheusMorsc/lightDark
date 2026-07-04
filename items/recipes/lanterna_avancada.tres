@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RecipeDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/recipe_def.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/kenney_roguelike_rpg/floor_torch.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "lanterna_avancada"
+display_name = "Lanterna Avançada"
+costs = {
+"lanterna": 1,
+"essencia": 2,
+"fibra": 4
+}
+result_id = "lanterna_avancada"
+result_count = 1
+icon = ExtResource("2")
+sort_order = 11
+required_station = "mesa_pesquisa"
+required_station_name = "Mesa de Pesquisa"

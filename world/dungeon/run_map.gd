@@ -155,6 +155,14 @@ func _generate() -> void:
 		"suprimentos":
 			prop_min = 4; prop_max = 6
 
+	# 5b. Modificador da run inteira (sorteado uma vez em WorldLayers.
+	#     _do_start_run — ver RunModifierDef), em cima do viés do mapa.
+	elite_chance = clampf(elite_chance + WorldLayers.get_elite_chance_bonus(), 0.0, 1.0)
+	var ore_mult := WorldLayers.get_ore_yield_mult()
+	if ore_mult != 1.0:
+		ore_min = maxi(1, ceili(ore_min * ore_mult))
+		ore_max = maxi(ore_min, ceili(ore_max * ore_mult))
+
 	# 6. Conteúdo: spawn na sala inicial, portais de escolha na mais distante,
 	#    inimigos/props/minério nas demais (risco cresce com map_index).
 	var start: Vector2i = order[0]
@@ -189,7 +197,7 @@ func _generate() -> void:
 ## em essência + portal de saída no lugar da queda.
 func _spawn_boss(cell: Vector2i) -> void:
 	var b := BOSS.instantiate()
-	b.power_scale = 1.0 + 0.4 * float(map_index / BOSS_EVERY - 1)
+	b.power_scale = (1.0 + 0.4 * float(map_index / BOSS_EVERY - 1)) * WorldLayers.get_boss_power_mult()
 	b.defeated.connect(_on_boss_defeated.bind(cell))
 	entities.add_child(b)
 	b.global_position = _cell_pos(cell)
@@ -252,31 +260,50 @@ func _pick_enemy_scene(rng: RandomNumberGenerator) -> PackedScene:
 			return pool[i]
 	return pool[pool.size() - 1]
 
+## Afixos de elite disponíveis (ver entities/enemy.gd pra efeito de cada
+## um) — cada elite sorteia 2 distintos, no lugar do antigo multiplicador
+## burro (registrado jul/2026, parte do sistema de Run Modifiers).
+const ELITE_AFFIXES: Array[String] = ["fast", "vampiric", "shielded", "regenerating", "explosive"]
+const ELITE_TINT := Color(1.0, 0.55, 0.55)
+
 ## Inimigos mais fortes quanto mais fundo na run; elites são versões
-## reforçadas e avermelhadas (placeholder graybox de "miniboss").
+## reforçadas com 2 afixos reais sorteados (não é mais só stat x1.8).
 func _spawn_enemy(rng: RandomNumberGenerator, r: Rect2i, elite: bool) -> void:
 	var pos := _rand_cell(rng, r)
 	if pos.distance_to(spawn_position) < 190.0:
 		return  # zona segura: ninguém spawna colado na entrada do mapa
 	var scene := _pick_enemy_scene(rng)
 	var e := scene.instantiate()
-	var f := 1.0 + 0.2 * (map_index - 1)
+	var health_mult := 1.0 + 0.2 * (map_index - 1)
 	if elite:
-		f *= 1.8
-	e.max_health *= f
-	e.contact_damage *= f
-	e.projectile_damage *= f
-	e.explosion_damage *= f
-	e.speed *= 1.0 + 0.05 * (map_index - 1)
+		health_mult *= 1.3  # bump menor que antes — o resto do perigo vem dos afixos
+	var dmg_mult := health_mult * WorldLayers.get_enemy_damage_mult()
+	e.max_health *= health_mult
+	e.contact_damage *= dmg_mult
+	e.projectile_damage *= dmg_mult
+	e.explosion_damage *= dmg_mult
+	e.speed *= (1.0 + 0.05 * (map_index - 1)) * WorldLayers.get_enemy_speed_mult()
 	if elite:
-		e.base_modulate = Color(1.0, 0.55, 0.55)
+		e.base_modulate = ELITE_TINT
+		e.elite_affixes = _pick_elite_affixes(rng)
 	entities.add_child(e)
 	if elite:
 		var spr: Node = e.get_node_or_null("Sprite2D")
 		if spr:
-			spr.modulate = Color(1.0, 0.55, 0.55)
+			spr.modulate = ELITE_TINT
 			spr.scale *= 1.25
 	e.global_position = pos
+
+## Sorteia 2 afixos distintos de ELITE_AFFIXES (Fisher-Yates parcial com o
+## rng da seed, mesmo motivo do shuffle manual em _spawn_portals).
+func _pick_elite_affixes(rng: RandomNumberGenerator) -> Array[String]:
+	var pool := ELITE_AFFIXES.duplicate()
+	for i in range(pool.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var tmp: String = pool[i]
+		pool[i] = pool[j]
+		pool[j] = tmp
+	return [pool[0], pool[1]]
 
 func _rand_cell(rng: RandomNumberGenerator, r: Rect2i) -> Vector2:
 	var c := Vector2i(

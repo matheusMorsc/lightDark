@@ -1,0 +1,49 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://entities/structures/chest.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/boxes/9.png" id="2"]
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="3"]
+
+[sub_resource type="CanvasTexture" id="CT_chest_grande"]
+diffuse_texture = ExtResource("2")
+
+[sub_resource type="ShaderMaterial" id="SM_chest_grande"]
+shader = ExtResource("3")
+
+[sub_resource type="RectangleShape2D" id="RS_chest_grande"]
+size = Vector2(30, 14)
+
+[sub_resource type="CircleShape2D" id="CS_chest_grande_area"]
+radius = 50.0
+
+[node name="ChestGrande" type="StaticBody2D"]
+script = ExtResource("1")
+slot_count = 40
+closed_texture = SubResource("CT_chest_grande")
+open_label = "F — Abrir Baú Grande"
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("SM_chest_grande")
+texture = SubResource("CT_chest_grande")
+modulate = Color(0.82, 0.7, 0.55, 1)
+offset = Vector2(0, -9)
+scale = Vector2(2.6, 2.4)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RS_chest_grande")
+
+[node name="Label" type="Label" parent="."]
+z_index = 200
+z_as_relative = false
+theme_override_font_sizes/font_size = 12
+offset_left = -90.0
+offset_top = -60.0
+offset_right = 90.0
+offset_bottom = -40.0
+horizontal_alignment = 1
+
+[node name="Area2D" type="Area2D" parent="."]
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("CS_chest_grande_area")

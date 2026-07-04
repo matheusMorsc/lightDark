@@ -62,19 +62,47 @@ theme_override_constants/separation = 8
 
 [node name="HealthBar" type="ProgressBar" parent="Control/VBoxContainer"]
 custom_minimum_size = Vector2(200, 20)
+size_flags_horizontal = 0
+size_flags_vertical = 0
 theme_override_styles/background = SubResource("StyleBoxFlat_bar_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_health_fill")
 max_value = 100.0
 value = 100.0
 show_percentage = false
 
+[node name="ValueLabel" type="Label" parent="Control/VBoxContainer/HealthBar"]
+mouse_filter = 2
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "100 / 100"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+
 [node name="HungerBar" type="ProgressBar" parent="Control/VBoxContainer"]
 custom_minimum_size = Vector2(200, 20)
+size_flags_horizontal = 0
+size_flags_vertical = 0
 theme_override_styles/background = SubResource("StyleBoxFlat_bar_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_hunger_fill")
 max_value = 100.0
 value = 100.0
 show_percentage = false
+
+[node name="ValueLabel" type="Label" parent="Control/VBoxContainer/HungerBar"]
+mouse_filter = 2
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "100 / 100"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
 
 [node name="InventoryPanel" type="PanelContainer" parent="Control"]
 anchor_left = 0.5
@@ -228,10 +256,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -160.0
-offset_top = -100.0
-offset_right = 160.0
-offset_bottom = 100.0
+offset_left = -220.0
+offset_top = -220.0
+offset_right = 220.0
+offset_bottom = 220.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_tutorial_bg")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Control/CraftingPanel"]
@@ -241,41 +269,12 @@ text = "Crafting (C para fechar)"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 22
 
-[node name="Recipe1Row" type="HBoxContainer" parent="Control/CraftingPanel/VBoxContainer"]
-theme_override_constants/separation = 6
+[node name="Scroll" type="ScrollContainer" parent="Control/CraftingPanel/VBoxContainer"]
+size_flags_vertical = 3
 
-[node name="Icon" type="TextureRect" parent="Control/CraftingPanel/VBoxContainer/Recipe1Row"]
-custom_minimum_size = Vector2(18, 18)
-texture = ExtResource("4")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Label" type="Label" parent="Control/CraftingPanel/VBoxContainer/Recipe1Row"]
-text = "[1] Machado I — 4 fibra + 3 pedra (corta árvores)"
-
-[node name="Recipe2Row" type="HBoxContainer" parent="Control/CraftingPanel/VBoxContainer"]
-theme_override_constants/separation = 6
-
-[node name="Icon" type="TextureRect" parent="Control/CraftingPanel/VBoxContainer/Recipe2Row"]
-custom_minimum_size = Vector2(18, 18)
-texture = ExtResource("5")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Label" type="Label" parent="Control/CraftingPanel/VBoxContainer/Recipe2Row"]
-text = "[2] Picareta I — 2 madeira + 4 pedra (minera minério)"
-
-[node name="Recipe3Row" type="HBoxContainer" parent="Control/CraftingPanel/VBoxContainer"]
-theme_override_constants/separation = 6
-
-[node name="Icon" type="TextureRect" parent="Control/CraftingPanel/VBoxContainer/Recipe3Row"]
-custom_minimum_size = Vector2(18, 18)
-texture = ExtResource("6")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Label" type="Label" parent="Control/CraftingPanel/VBoxContainer/Recipe3Row"]
-text = "[3] Refeição Reforçada — 5 comida (E come: 60 fome + 20 vida)"
+[node name="RecipesVBox" type="VBoxContainer" parent="Control/CraftingPanel/VBoxContainer/Scroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
 
 [node name="StatusLabel" type="Label" parent="Control/CraftingPanel/VBoxContainer"]
 text = ""
@@ -367,6 +366,66 @@ index = 18
 
 [node name="Slot19" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 19
+
+[node name="Slot20" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 20
+
+[node name="Slot21" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 21
+
+[node name="Slot22" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 22
+
+[node name="Slot23" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 23
+
+[node name="Slot24" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 24
+
+[node name="Slot25" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 25
+
+[node name="Slot26" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 26
+
+[node name="Slot27" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 27
+
+[node name="Slot28" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 28
+
+[node name="Slot29" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 29
+
+[node name="Slot30" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 30
+
+[node name="Slot31" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 31
+
+[node name="Slot32" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 32
+
+[node name="Slot33" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 33
+
+[node name="Slot34" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 34
+
+[node name="Slot35" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 35
+
+[node name="Slot36" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 36
+
+[node name="Slot37" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 37
+
+[node name="Slot38" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 38
+
+[node name="Slot39" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
+index = 39
 
 [node name="UpgradesPanel" type="PanelContainer" parent="Control"]
 visible = false

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StructureDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/structure_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://entities/structures/research_table.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "research_table"
+display_name = "Mesa de Pesquisa"
+scene = ExtResource("2")
+costs = {
+"madeira": 8,
+"pedra": 6
+}
+required_upgrade_id = "constr_research"
+requires_workbench_nearby = true

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StructureDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/structure_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://entities/structures/workbench.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "workbench"
+display_name = "Workbench"
+scene = ExtResource("2")
+costs = {
+"madeira": 8,
+"pedra": 4
+}
+required_upgrade_id = "constr_workbench"
+requires_workbench_nearby = false

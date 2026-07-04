@@ -8,6 +8,13 @@ extends CharacterBody2D
 @export var eat_hunger_restore: float = 25.0
 @export var footstep_interval_px: float = 42.0
 
+@export_group("Dash")
+## Impulso instantâneo (sem telegraph, diferente da investida do boss):
+## Shift dispara, dura pouco, dá i-frames enquanto dura, cooldown separado.
+@export var dash_speed: float = 420.0
+@export var dash_duration: float = 0.16
+@export var dash_cooldown: float = 0.7
+
 ## Encurtamento vertical: no mundo "inclinado" estilo Don't Starve, um passo
 ## pra cima/baixo cobre menos tela que um passo lateral.
 const Y_FORESHORTEN: float = 0.8
@@ -55,12 +62,20 @@ var _footstep_distance: float = 0.0
 var _facing: String = "down"
 var _attack_anim_timer: float = 0.0
 
+var _dash_key_was_pressed: bool = false
+var _dash_time_left: float = 0.0
+var _dash_cooldown_left: float = 0.0
+var _dash_dir: Vector2 = Vector2.ZERO
+
 func _ready() -> void:
 	add_to_group("player")
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	GameState.player_damaged.connect(_on_player_damaged)
 	GameState.player_died.connect(_on_player_died)
 	GameState.inventory_changed.connect(_update_lantern)
+	# Comprar "Lanterna Encantada" no meio do jogo precisa refletir na hora,
+	# não só na próxima vez que o inventário mudar.
+	UpgradeTracker.purchased.connect(func(_def: UpgradeDef) -> void: _update_lantern())
 	_update_lantern()
 	_update_attack_area_position()
 
@@ -81,18 +96,34 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 	var input_vector := _get_input_vector()
-	velocity = input_vector * speed
-	velocity.y *= Y_FORESHORTEN
+
+	_dash_cooldown_left = maxf(0.0, _dash_cooldown_left - delta)
+	var dash_key_pressed := Input.is_key_pressed(KEY_SHIFT)
+	if dash_key_pressed and not _dash_key_was_pressed and _dash_time_left <= 0.0 \
+			and _dash_cooldown_left <= 0.0 and _attack_anim_timer <= 0.0 and not BuildMode.active:
+		_start_dash(input_vector)
+	_dash_key_was_pressed = dash_key_pressed
+
+	if _dash_time_left > 0.0:
+		_dash_time_left = maxf(0.0, _dash_time_left - delta)
+		velocity = _dash_dir * dash_speed
+		velocity.y *= Y_FORESHORTEN
+		if _dash_time_left <= 0.0:
+			_end_dash()
+	else:
+		velocity = input_vector * speed * GameState.speed_mult
+		velocity.y *= Y_FORESHORTEN
 	move_and_slide()
 	_update_footsteps(delta)
 	_update_facing(input_vector)
 
 	# Ataque/coleta: Espaço OU clique esquerdo do mouse (o cursor já mostra
 	# espada/picareta via CursorManager quando tem algo alcançável embaixo).
+	# Bloqueado durante o dash — os dois estados não se misturam.
 	var attack_mouse_pressed := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 	var attack_pressed := Input.is_action_just_pressed("ui_accept") \
 		or (attack_mouse_pressed and not _attack_mouse_was_pressed)
-	if attack_pressed and not BuildMode.active:
+	if attack_pressed and not BuildMode.active and _dash_time_left <= 0.0:
 		_attack()
 	_attack_mouse_was_pressed = attack_mouse_pressed
 
@@ -109,7 +140,7 @@ func _physics_process(delta: float) -> void:
 		_cycle_tool()
 	_tool_key_was_pressed = tool_key_pressed
 
-	_update_animation(input_vector.length() > 0.0, delta)
+	_update_animation(input_vector.length() > 0.0 or _dash_time_left > 0.0, delta)
 
 ## Vira o personagem (down/up/left/right) conforme o eixo dominante do
 ## movimento. Só atualiza enquanto se move — parado, mantém a última direção.
@@ -178,7 +209,7 @@ func _attack() -> void:
 	_attack_anim_timer = ATTACK_ANIM_DURATION
 	var target := _pick_target()
 	if target:
-		target.hit(attack_damage)
+		target.hit(attack_damage * GameState.attack_damage_mult)
 		_spawn_hit_fx(target.global_position + Vector2(0, -12))
 		_hit_stop()
 
@@ -217,8 +248,9 @@ func _facing_vector() -> Vector2:
 ## brilho fraco — suficiente na superfície, apertado nas runs.
 func _update_lantern() -> void:
 	var has_lantern := GameState.get_total("lanterna") > 0
+	var range_mult := GameState.lantern_range_mult if has_lantern else 1.0
 	torch.set("energy", 1.3 if has_lantern else 0.6)
-	torch.set("range", 180.0 if has_lantern else 110.0)
+	torch.set("range", (180.0 if has_lantern else 110.0) * range_mult)
 	light_shafts.visible = has_lantern
 
 ## Equipa a próxima ferramenta do inventário (ordem dos slots).
@@ -233,6 +265,42 @@ func _cycle_tool() -> void:
 		return
 	var idx := tools.find(GameState.equipped_tool_id)
 	GameState.equip_tool(tools[(idx + 1) % tools.size()])
+
+## Dispara o dash: direção = input atual (se estiver se movendo) ou o
+## facing atual (se parado) — sempre um impulso, nunca precisa mirar antes.
+## Concede i-frames (GameState.invulnerable) pelo tempo do impulso.
+func _start_dash(input_vector: Vector2) -> void:
+	var dir := input_vector if input_vector.length() > 0.0 else _facing_vector()
+	_dash_dir = dir.normalized()
+	_dash_time_left = dash_duration
+	_dash_cooldown_left = dash_cooldown * GameState.dash_cooldown_mult
+	GameState.invulnerable = true
+	_spawn_dash_fx()
+
+func _end_dash() -> void:
+	_dash_time_left = 0.0
+	GameState.invulnerable = false
+
+## Rajada de partículas na saída do dash — pista visual rápida já que não
+## existe animação de dash nos SpriteFrames (só idle/walk/attack/death).
+func _spawn_dash_fx() -> void:
+	var p := CPUParticles2D.new()
+	p.one_shot = true
+	p.emitting = true
+	p.amount = 10
+	p.lifetime = 0.25
+	p.explosiveness = 1.0
+	p.direction = Vector2(-_dash_dir.x, -_dash_dir.y)
+	p.spread = 16.0
+	p.initial_velocity_min = 90.0
+	p.initial_velocity_max = 160.0
+	p.scale_amount_min = 0.8
+	p.scale_amount_max = 1.6
+	p.color = Color(0.78, 0.9, 1.0, 0.85)
+	p.z_index = 40
+	get_parent().add_child(p)
+	p.global_position = global_position + Vector2(0, -10)
+	get_tree().create_timer(0.5).timeout.connect(p.queue_free)
 
 ## Congela o jogo por um instante no impacto (hit-stop) — vende o peso
 ## do golpe. O timer ignora o time_scale pra sempre voltar ao normal.

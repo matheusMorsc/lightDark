@@ -180,7 +180,7 @@ grow_vertical = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_tutorial_bg")
 
 [node name="TutorialLabel" type="Label" parent="Control/TutorialPanel"]
-text = "WASD / Setas: Mover\nEspaço: Atacar / Coletar\nE: Comer\nC: Crafting\nQ: Trocar ferramenta\nB: Construir\nO: Objetivos\nESC: Pausar\nT: Talismã (entrar/sair da run)"
+text = "WASD / Setas: Mover\nEspaço: Atacar / Coletar\nShift: Dash\nE: Comer\nC: Crafting\nU: Progressão (essência)\nQ: Trocar ferramenta\nB: Construir\nM: Mapa\nO: Objetivos\nESC: Pausar\nF: Interagir (baú, talismã, portais)"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 20
 
@@ -366,3 +366,21 @@ index = 18
 
 [node name="Slot19" parent="Control/ChestPanel/VBox/SlotsGrid" instance=ExtResource("3")]
 index = 19
+
+[node name="UpgradesPanel" type="PanelContainer" parent="Control"]
+visible = false
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -230.0
+offset_top = -200.0
+offset_right = 230.0
+offset_bottom = 200.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_tutorial_bg")
+
+[node name="Scroll" type="ScrollContainer" parent="Control/UpgradesPanel"]
+
+[node name="VBox" type="VBoxContainer" parent="Control/UpgradesPanel/Scroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 6

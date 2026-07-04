@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://progression/upgrade_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "explore_mine_yield"
+display_name = "Mão Precisa"
+description = "25% de chance de coletar 1 unidade extra por golpe em qualquer nó de recurso"
+branch = 1
+cost_essencia = 4
+requires = ""
+effect = 4
+value = 0.25
+sort_order = 2

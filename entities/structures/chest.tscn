@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://entities/structures/chest.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/boxes/13.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/boxes/9.png" id="2"]
 [ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="3"]
 
 [sub_resource type="CanvasTexture" id="CT_chest"]

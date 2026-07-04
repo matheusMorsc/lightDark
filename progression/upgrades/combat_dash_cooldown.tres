@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://progression/upgrade_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "combat_dash_cooldown"
+display_name = "Passo Leve"
+description = "-25% de cooldown do dash"
+branch = 0
+cost_essencia = 4
+requires = ""
+effect = 1
+value = 0.25
+sort_order = 3

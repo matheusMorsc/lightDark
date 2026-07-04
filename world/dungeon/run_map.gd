@@ -27,6 +27,8 @@ const WALL_TILE := Vector2i(16, 2)
 
 const ENEMY := preload("res://entities/enemy.tscn")
 const ENEMY_FAST := preload("res://entities/enemy_fast.tscn")
+const ENEMY_RANGED := preload("res://entities/enemy_ranged.tscn")
+const ENEMY_EXPLOSIVE := preload("res://entities/enemy_explosive.tscn")
 const ORE := preload("res://entities/ore_node.tscn")
 const PORTAL := preload("res://entities/dungeon/run_portal.tscn")
 const BOSS := preload("res://entities/dungeon/boss.tscn")
@@ -230,20 +232,44 @@ func _spawn(scene: PackedScene, pos: Vector2) -> Node2D:
 	n.global_position = pos
 	return n
 
+## Mistura de tipo por viés: "combate" traz mais variedade (e mais risco —
+## à distância e explosivos exigem mais atenção que o melee puro); os
+## demais viéses mantêm a run majoritariamente melee, com uma pitada de
+## variedade pra não ficar repetitivo.
+func _pick_enemy_scene(rng: RandomNumberGenerator) -> PackedScene:
+	var pool: Array[PackedScene] = [ENEMY, ENEMY_FAST, ENEMY_RANGED, ENEMY_EXPLOSIVE]
+	var weights: Array[float] = [0.55, 0.25, 0.15, 0.05]
+	if reward_bias == "combate":
+		weights = [0.35, 0.20, 0.25, 0.20]
+	var total := 0.0
+	for w in weights:
+		total += w
+	var roll := rng.randf() * total
+	var acc := 0.0
+	for i in weights.size():
+		acc += weights[i]
+		if roll <= acc:
+			return pool[i]
+	return pool[pool.size() - 1]
+
 ## Inimigos mais fortes quanto mais fundo na run; elites são versões
 ## reforçadas e avermelhadas (placeholder graybox de "miniboss").
 func _spawn_enemy(rng: RandomNumberGenerator, r: Rect2i, elite: bool) -> void:
 	var pos := _rand_cell(rng, r)
 	if pos.distance_to(spawn_position) < 190.0:
 		return  # zona segura: ninguém spawna colado na entrada do mapa
-	var scene := ENEMY_FAST if rng.randf() < 0.3 else ENEMY
+	var scene := _pick_enemy_scene(rng)
 	var e := scene.instantiate()
 	var f := 1.0 + 0.2 * (map_index - 1)
 	if elite:
 		f *= 1.8
 	e.max_health *= f
 	e.contact_damage *= f
+	e.projectile_damage *= f
+	e.explosion_damage *= f
 	e.speed *= 1.0 + 0.05 * (map_index - 1)
+	if elite:
+		e.base_modulate = Color(1.0, 0.55, 0.55)
 	entities.add_child(e)
 	if elite:
 		var spr: Node = e.get_node_or_null("Sprite2D")

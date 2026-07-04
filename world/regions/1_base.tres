@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RegionDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://world/region_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = 1
+display_name = "Base"
+scene = null
+is_base = true
+offset = Vector2(0, 0)

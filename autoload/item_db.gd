@@ -27,6 +27,14 @@ func _ready() -> void:
 func has(id: String) -> bool:
 	return _defs.has(id)
 
+## Todas as definições carregadas (usado pelo menu de debug pra listar
+## recursos sem precisar hardcodar ids — ver hud.gd _build_debug_panel()).
+func get_all() -> Array[ItemDef]:
+	var out: Array[ItemDef] = []
+	for def: ItemDef in _defs.values():
+		out.append(def)
+	return out
+
 func get_def(id: String) -> ItemDef:
 	return _defs.get(id, null)
 

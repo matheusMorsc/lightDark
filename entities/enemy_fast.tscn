@@ -1,24 +1,22 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://entities/enemy.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/kenney_roguelike_characters/enemy_creature_fast.png" id="2"]
-[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="3"]
 [ext_resource type="Texture2D" path="res://assets/fx/shadow_blob.png" id="4"]
-
-[sub_resource type="CanvasTexture" id="CanvasTexture_enemy_fast"]
-diffuse_texture = ExtResource("2")
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_enemy_fast"]
-shader = ExtResource("3")
+[ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="5"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_enemy_fast"]
 radius = 7.0
 height = 24.0
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_enemy_fast"]
+shader = ExtResource("5")
+
 [node name="EnemyFast" type="CharacterBody2D"]
 collision_layer = 4
 collision_mask = 5
 script = ExtResource("1")
+kit_id = 2
+behavior = "melee"
 speed = 150.0
 max_health = 15.0
 contact_damage = 6.0
@@ -31,11 +29,10 @@ texture = ExtResource("4")
 scale = Vector2(0.42, 0.32)
 modulate = Color(1, 1, 1, 0.65)
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(0, -12)
+[node name="Sprite2D" type="AnimatedSprite2D" parent="."]
 material = SubResource("ShaderMaterial_enemy_fast")
-texture = SubResource("CanvasTexture_enemy_fast")
-scale = Vector2(1.8, 1.8)
+position = Vector2(0, -12)
+scale = Vector2(1.2, 1.2)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 rotation = 1.5707964

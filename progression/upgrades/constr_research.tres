@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://progression/upgrade_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "constr_research"
+display_name = "Mesa de Pesquisa"
+description = "Desbloqueia a Mesa de Pesquisa — precisa ser construída perto de uma Workbench"
+branch = 2
+cost_essencia = 8
+requires = "constr_alchemy"
+effect = 5
+value = 0.0
+sort_order = 4

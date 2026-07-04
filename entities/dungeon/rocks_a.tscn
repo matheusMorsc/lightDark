@@ -1,7 +1,8 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/blockage/5.png" id="1"]
 [ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
+[ext_resource type="Script" path="res://entities/dungeon/breakable_prop.gd" id="5"]
 
 [sub_resource type="CanvasTexture" id="CT_rocks_a"]
 diffuse_texture = ExtResource("1")
@@ -16,6 +17,7 @@ size = Vector2(23.8, 19.6)
 polygon = PackedVector2Array(-11.9, 0, -7.14, -6, 7.14, -6, 11.9, 0, 7.14, 6, -7.14, 6)
 
 [node name="RocksA" type="StaticBody2D"]
+script = ExtResource("5")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 material = SubResource("SM_rocks_a")

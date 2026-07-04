@@ -97,6 +97,7 @@ func save_game() -> void:
 		"structures": structures,
 		"depleted": _depleted,
 		"objectives": ObjectiveTracker.to_dict(),
+		"upgrades": UpgradeTracker.to_dict(),
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -133,6 +134,7 @@ func load_game() -> void:
 	GameState.hunger_changed.emit(GameState.hunger, GameState.max_hunger)
 	GameState.inventory_changed.emit()
 	ObjectiveTracker.from_dict(data.get("objectives", {}))
+	UpgradeTracker.from_dict(data.get("upgrades", {}))
 	var tool_id := String(data.get("equipped_tool_id", ""))
 	if tool_id != "":
 		GameState.equip_tool(tool_id)
@@ -178,6 +180,7 @@ func load_game() -> void:
 ## Apaga o save (usado no restart pós-morte na superfície).
 func wipe() -> void:
 	ObjectiveTracker.reset()
+	UpgradeTracker.reset()
 	_depleted.clear()
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))

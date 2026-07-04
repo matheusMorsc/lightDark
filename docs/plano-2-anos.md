@@ -28,10 +28,45 @@ Base fixa e persistente na superfície (lado Stardew) + dungeons procedurais com
 1. **A base é o "porto seguro"** — persistente, customizável, onde todo progresso permanente mora.
 2. **A run é descartável** — gerada por seed, tensa, com escolha risco×recompensa a cada andar.
 3. **Morrer atrasa, nunca pune de verdade** — a dungeon é expedição de coleta, não teste de sobrevivência; morte custa no máximo parte do loot solto da run, jamais base ou progresso.
-4. **Cada bioma é um contrato claro** — objetivos visíveis (boss ×N, NPCs, recursos) que destravam o próximo.
+4. **Cada bioma é um contrato claro** — objetivos visíveis (boss ×N, NPCs, recursos) que destravam o próximo (mesmo mundo, nova região — ver decisão abaixo).
 5. **Escopo é inimigo nº 1** — nada entra no jogo sem passar pela Definition of Done da §7.
 
 **Loop macro:** preparar na base → descer (run) → arriscar descer mais fundo ou extrair → voltar com loot → melhorar base/equipamento/desbloquear → objetivo do bioma completo → novo bioma na superfície → novas dungeons → repete.
+
+> **Decisão de arquitetura (registrada em jul/2026):** o mundo é ÚNICO e
+> persistente — não existe "base do bioma 2" nem "base do bioma 3".
+> Progredir (cumprindo os contratos do pilar 4) libera novas REGIÕES
+> conectadas ao mesmo mapa — mais recursos, inimigos, NPCs, quests e novas
+> dungeons — mas a base que o jogador constrói continua sendo sempre a
+> mesma, num só lugar. "Novo bioma na superfície" no loop macro acima
+> significa "nova região explorável", nunca "nova base pra recomeçar".
+> Tecnicamente: `WorldLayers` gerencia N regiões de superfície (`RegionDef`
+> .tres em `world/regions/`) + N mapas de run, todas coexistindo — **já
+> implementado em jul/2026**. A região 1 é sempre a base de verdade
+> (estruturas, save, ponto de morte/respawn); regiões 2+ nascem sob
+> demanda ao cruzar uma borda (`entities/region_edge.gd`) e ficam vivas
+> escondidas pelo resto da sessão. Limitação de v1: só a posição na base
+> persiste entre sessões (detalhe em `docs/funcionalidades.md`). Região 2
+> hoje é só um graybox de teste — falta desenhar o conteúdo real dela.
+>
+> **Raids na base (novo, ainda sem mecânica desenhada):** runs não servem
+> só pra progredir — a base pode sofrer invasões ocasionais de inimigos, e
+> o que se traz das runs (equipamento, estruturas defensivas) é o que
+> prepara o jogador pra defendê-la. Gatilho, frequência e quem ataca ainda
+> não foram definidos; entra no design quando o sistema for desenhado.
+>
+> **Árvore de progressão permanente (registrada jul/2026):** o "matar boss
+> → ganhar essência" agora alimenta uma árvore de upgrades permanentes
+> (Combate, Exploração, Construção, Magia), implementada em
+> `UpgradeTracker`/`UpgradeDef` — ver `docs/funcionalidades.md` pro estado
+> atual. A branch Construção é onde entra a cadeia de estações (Workbench
+> → Forge → Alchemy Table → Research Table): cada estação é um upgrade que
+> desbloqueia uma `StructureDef` nova, não um sistema paralelo de custo em
+> madeira/pedra. Um **Portal** de atalho (fast-travel entre regiões
+> distantes do mesmo mundo) é uma estação tardia dessa mesma cadeia — e é
+> importante não confundir com o Talismã: o Talismã continua sendo a
+> ÚNICA entrada pra uma run, o Portal é só conveniência de deslocamento
+> pela superfície, e só faz sentido depois que existir mais de uma região.
 
 ---
 
@@ -45,7 +80,7 @@ O trimestre mais importante. Nada de conteúdo novo; só sistemas que tudo depoi
 - `WorldLayers`: troca de camadas superfície↔dungeon com fade, spawn points, player/HUD persistentes.
 - **Save system v1**: base persistente (estruturas colocadas, inventário, progresso de objetivos) em JSON/Resource. Runs não salvam (roguelite = permadeath da run, simplifica tudo).
 - **Procgen v1**: gerador de andares por **salas prefab costuradas** (12–15 salas desenhadas à mão por bioma, conectadas por corredores em grafo; seed determinística). Mais controlável e barato que geração célula-a-célula, e o `dungeon_tileset.tres` + props já servem.
-- **Run Manager**: estado da run (andar atual, loot carregado, seed), morte leve (mantém a bolsa segura, perde parte do loot solto, volta pra base), extração voluntária (escada de volta / corda).
+- **Run Manager**: estado da run (mapa atual, seed), morte leve (volta pra base com metade da vida, nada se perde). ~~Extração voluntária (escada/corda)~~ — descartada, ver §6: só se sai ganhando ou morrendo.
 - Alçapão funcional na superfície usando o prop `trapdoor` (Area2D + prompt).
 - **Marco T1:** descer da base, jogar 2 andares gerados, morrer ou extrair, voltar pra base com o estado correto. Feio, mas funcional.
 
@@ -165,13 +200,13 @@ Custos únicos fora dos biomas: style guide + testes (~25h), rig do player com t
 
 ## 6. Design da run (referência rápida)
 
-- **Propósito da run:** expedição de coleta — materiais específicos viram ferramentas que destravam a exploração do bioma atual; materiais raros de boss movem a progressão geral. A run serve à base, não o contrário.
-- **Estrutura:** 3–5 andares por dungeon; andar = 8–12 salas prefab em grafo (entrada → 2 ramos → sala do fim: escada ou boss). Elite rooms e salas de tesouro opcionais nos ramos = escolha risco×recompensa.
+- **Propósito da run:** expedição de coleta — materiais específicos viram ferramentas que destravam a exploração do bioma atual; materiais raros de boss movem a progressão geral. A run serve à base, não o contrário. Também prepara o jogador pra defender a base das raids ocasionais de inimigos (ver decisão na §2).
+- **Estrutura:** cada mapa termina em 2–3 portais de escolha (estilo Hades) que decidem o viés do próximo mapa, ou — a cada `BOSS_EVERY` mapas — numa arena de boss. Elite rooms e salas de tesouro opcionais = escolha risco×recompensa.
 - **Semi-roteirizada (modelo Hades):** o diretor de encontros injeta salas de NPC/evento conforme flags de quest e pesos — familiaridade dentro da variação. Aleatoriedade pura só no layout e nos encontros comuns.
-- **Risco crescente:** por andar, +HP/dano de inimigos, +chance de elite, melhor tabela de loot. Modificadores de seed visíveis antes de descer ("andares inundados", "escuridão densa") a partir do T5.
-- **Morte (leve):** a bolsa segura é padrão — materiais de quest e de boss nunca se perdem; perde-se parte do loot comum solto. Base intocada. Como a punição é branda, a tensão vem das escolhas opcionais (elites, salas de desafio), não do medo de perder tudo.
-- **Extração:** escada de volta em cada andar; corda de emergência (item craftável barato) de qualquer lugar.
-- **Objetivos de bioma (o "contrato"):** matar boss ×N (N=2–3), resgatar X NPCs, entregar Y recursos ao NPC construtor → abre a passagem para a superfície do próximo bioma.
+- **Risco crescente:** por mapa, +HP/dano de inimigos, +chance de elite, melhor tabela de loot. Modificadores de seed visíveis antes de entrar ("mapas inundados", "escuridão densa") a partir do T5.
+- **Morte (leve):** morrer na run acorda o jogador em casa com metade da vida, fome reposta a 50% no mínimo. A base nunca é afetada — nada de bolsa/loot solto a perder, o "custo" é só o tempo da run.
+- **Sem extração voluntária (registrado jul/2026):** dentro da run só se sai ganhando (derrotar o boss abre um portal de saída) ou morrendo. Não existe escada/corda de volta a qualquer momento — plano anterior descartado.
+- **Objetivos de bioma (o "contrato"):** matar boss ×N (N=2–3), resgatar X NPCs, entregar Y recursos ao NPC construtor → abre a passagem para a nova região do próximo bioma (mesmo mundo — ver decisão na §2).
 
 ---
 

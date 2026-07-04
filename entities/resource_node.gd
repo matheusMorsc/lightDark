@@ -50,12 +50,16 @@ func hit(_amount: float) -> void:
 func _roll_drops() -> void:
 	if drops.is_empty():
 		GameState.add_resource(resource_id, amount_per_hit)
-		return
-	for d: Dictionary in drops:
-		if randf() <= float(d.get("chance", 1.0)):
-			var n := randi_range(int(d.get("min", 1)), int(d.get("max", 1)))
-			if n > 0:
-				GameState.add_resource(String(d.get("item_id", resource_id)), n)
+	else:
+		for d: Dictionary in drops:
+			if randf() <= float(d.get("chance", 1.0)):
+				var n := randi_range(int(d.get("min", 1)), int(d.get("max", 1)))
+				if n > 0:
+					GameState.add_resource(String(d.get("item_id", resource_id)), n)
+	# Bônus da árvore de progressão ("Mão Precisa"): chance de uma unidade
+	# extra do recurso PRINCIPAL deste nó, além do que já rolou acima.
+	if GameState.resource_yield_bonus_pct > 0.0 and randf() < GameState.resource_yield_bonus_pct:
+		GameState.add_resource(resource_id, 1)
 
 ## Ferramenta errada/ausente: escurece o nó e mostra o requisito flutuando.
 func _deny_feedback() -> void:

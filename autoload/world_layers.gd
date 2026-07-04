@@ -1,25 +1,40 @@
 extends Node
 ## WorldLayers (autoload)
-## Superfície fixa/persistente (bioma) + runs de mapas gerados (lado Hades).
+## Base persistente (região 1, sempre viva) + N regiões de superfície
+## exploráveis (região 2+, instanciadas sob demanda e mantidas vivas pelo
+## resto da sessão) + runs de mapas gerados (lado Hades).
 ##
-## O player carrega um "talismã" permanente (não ocupa inventário): a tecla T
-## teleporta pra dentro de uma run a partir da superfície, e de volta pra
-## base de dentro da run (encerrando-a). Dentro da run não há andares —
-## cada mapa termina em 2–3 portais e o jogador ESCOLHE o próximo mapa
-## pelo tipo de recompensa (minério, combate, suprimentos), estilo Hades.
+## O talismã é uma estrutura construível na base (entities/structures/
+## talisman.gd, StructureDef "talisma"): F nela chama start_run(). Dentro
+## da run não há saída voluntária — só se volta ganhando (portal de saída
+## pós-boss chama end_run(), ver run_portal.gd) ou morrendo
+## (_on_player_died chama end_run()). Dentro da run não há andares — cada
+## mapa termina em 2–3 portais e o jogador ESCOLHE o próximo mapa pelo tipo
+## de recompensa (minério, combate, suprimentos), estilo Hades.
 ##
-## v1 (T1 do plano): a superfície não é destruída ao entrar na run — ela é
-## escondida e desabilitada, e o mapa da run é gerado num offset distante
-## para colisores/luzes das duas camadas nunca interagirem. Só existe um
-## mapa por vez; escolher um portal gera o próximo e libera o anterior.
+## Regiões (registrado jul/2026 — ver docs/plano-2-anos.md §2): a base
+## (região 1, `world/biome_1.tscn`, a cena principal) nunca muda de lugar —
+## "novo bioma" significa uma REGIÃO nova conectada por uma borda
+## (entities/region_edge.gd), nunca uma base nova. Construção (B) e o
+## talismã só funcionam na região 1 — ver BuildMode e talisman.gd.
+## Limitação de v1: só a posição na base persiste entre sessões; se o save
+## acontecer com o jogador numa região 2+, ele acorda na base ao recarregar
+## (mesma regra da morte — "ainda não voltou" em vez de "perdeu o lugar").
+##
+## v1 do lado run (T1 do plano): a região ativa não é destruída ao entrar
+## na run — é escondida e desabilitada, e o mapa da run é gerado num offset
+## distante para colisores/luzes das camadas nunca interagirem. Só existe
+## um mapa por vez; escolher um portal gera o próximo e libera o anterior.
 ##
 ## Morte na run é leve (pilar 3): volta pra base com metade da vida.
 ## A base nunca é afetada.
 
 const MAP_SCENE := preload("res://world/dungeon/run_map.tscn")
 ## Offset espacial da run: mantém os colisores da superfície (que continuam
-## no espaço físico mesmo com o nó escondido) longe do player.
-const RUN_OFFSET := Vector2(0, 100000)
+## no espaço físico mesmo com o nó escondido) longe do player. Bem afastado
+## de qualquer offset de região (ver REGIONS_DIR) pra nunca colidir.
+const RUN_OFFSET := Vector2(0, 1000000)
+const REGIONS_DIR := "res://world/regions"
 
 var in_run: bool = false
 ## Quantos mapas o jogador já entrou nesta run (1 = primeiro). Escala o risco.
@@ -27,18 +42,29 @@ var map_index: int = 0
 ## Seed da run — sorteada ao entrar; os mapas derivam dela.
 var run_seed: int = 0
 
-## Posição "de casa" na superfície (respawn pós-morte).
+## Posição "de casa" na superfície, região 1 (respawn pós-morte e pós-load
+## se o jogador tiver salvo numa região 2+ — ver limitação de v1 acima).
 var home_position := Vector2.ZERO
 
-var _surface: Node2D = null
+## Id da região onde o jogador está agora (1 = base). Enquanto in_run,
+## continua sendo a região de onde a run foi aberta (sempre 1 — só a base
+## tem talismã).
+var current_region_id: int = 1
+
+var _region_defs: Dictionary = {}  # int -> RegionDef
+## Raízes já instanciadas (id 1 é sempre a cena principal; as demais só
+## existem depois da primeira visita, e continuam vivas escondidas — ver
+## docs no topo do arquivo).
+var _region_roots: Dictionary = {}  # int -> Node2D
+
 var _map: Node2D = null
 var _return_position := Vector2.ZERO
-var _t_was_pressed := false
 var _fade_rect: ColorRect
 var _fading := false
 
 func _ready() -> void:
 	GameState.player_died.connect(_on_player_died)
+	_load_region_defs()
 	call_deferred("_capture_home")
 	# Véu preto pra transição de camadas (CanvasLayer acima de tudo).
 	var layer := CanvasLayer.new()
@@ -49,6 +75,20 @@ func _ready() -> void:
 	_fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_fade_rect)
 	_fade_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+
+func _load_region_defs() -> void:
+	var dir := DirAccess.open(REGIONS_DIR)
+	if dir == null:
+		push_error("WorldLayers: pasta de regiões não encontrada.")
+		return
+	for file in dir.get_files():
+		if file.ends_with(".remap"):
+			file = file.trim_suffix(".remap")
+		if not file.ends_with(".tres"):
+			continue
+		var def := load(REGIONS_DIR + "/" + file) as RegionDef
+		if def != null:
+			_region_defs[def.id] = def
 
 func _capture_home() -> void:
 	var p := _get_player()
@@ -68,26 +108,45 @@ func _transition(action: Callable) -> void:
 	await tw_out.finished
 	_fading = false
 
-## Talismã: T alterna entre entrar na run e voltar pra base.
-func _process(_delta: float) -> void:
-	var t_pressed := Input.is_key_pressed(KEY_T)
-	if t_pressed and not _t_was_pressed and not GameState.is_dead and not _fading:
-		if in_run:
-			end_run()
-		else:
-			start_run()
-	_t_was_pressed = t_pressed
+## Raiz da região 1 (base) — sempre resolve pra `current_scene` se ainda não
+## tiver sido capturada (mesma resiliência de antes: sobrevive a
+## reload_current_scene, que não re-executa _ready() dos autoloads).
+func _base_root() -> Node2D:
+	if _region_roots.has(1):
+		return _region_roots[1]
+	return get_tree().current_scene as Node2D
 
-## Inicia uma run nova a partir da superfície (com fade).
+## Raiz da região ATIVA agora (a que está visível/habilitada).
+func _active_root() -> Node2D:
+	if _region_roots.has(current_region_id):
+		return _region_roots[current_region_id]
+	return _base_root() if current_region_id == 1 else null
+
+## Republica os globals de ambiente (lit_ambient_color/energy) do
+## LitCanvasModulate de dentro de `root`. Necessário sempre que uma raiz
+## VOLTA a ficar ativa só com show() (sem re-entrar na árvore) — nesse caso
+## _enter_tree() não dispara de novo, e "o último a entrar vence" continua
+## sendo a região que a gente acabou de esconder. Seguro chamar sempre,
+## mesmo em raiz recém-instanciada (só reafirma o valor já correto).
+func _reapply_ambient(root: Node2D) -> void:
+	for m in get_tree().get_nodes_in_group("lit_canvas_modulate"):
+		if root.is_ancestor_of(m):
+			m.color = m.color  # o setter republica os globals
+			break
+
+## Inicia uma run nova a partir da base (com fade). Chamado pelo talismã
+## (entities/structures/talisman.gd) — não existe mais tecla global pra
+## isso, e não existe saída voluntária depois de entrar. Só funciona na
+## região 1 (o talismã, como estrutura construível, só existe lá).
 func start_run() -> void:
-	if in_run or _fading or _get_player() == null:
+	if in_run or _fading or current_region_id != 1 or _get_player() == null:
 		return
 	_transition(_do_start_run)
 
 func _do_start_run() -> void:
 	var player := _get_player()
 	run_seed = randi()
-	_surface = get_tree().current_scene
+	_region_roots[1] = get_tree().current_scene
 	_return_position = player.global_position
 	in_run = true
 	map_index = 0
@@ -99,25 +158,24 @@ func enter_next_map(reward: String) -> void:
 	if in_run and not _fading:
 		_transition(_goto_map.bind(reward))
 
-## Volta pra base (talismã ou pós-morte) e encerra a run (com fade).
+## Volta pra base e encerra a run (com fade). Só dois chamadores: o portal
+## de saída pós-boss (vitória, run_portal.gd) e _on_player_died (morte) —
+## não existe saída voluntária no meio de uma run.
 func end_run() -> void:
-	if _get_player() == null or _surface == null or not in_run or _fading:
+	var base := _base_root()
+	if _get_player() == null or base == null or not in_run or _fading:
 		return
 	_transition(_do_end_run)
 
 func _do_end_run() -> void:
 	var player := _get_player()
+	var base := _base_root()
 	in_run = false
 	map_index = 0
-	_surface.show()
-	_surface.process_mode = Node.PROCESS_MODE_INHERIT
-	# O LitCanvasModulate da run sobrescreveu os shader globals de ambiente
-	# ("o último a entrar vence"). Reaplica o da superfície ao voltar.
-	for m in get_tree().get_nodes_in_group("lit_canvas_modulate"):
-		if _surface.is_ancestor_of(m):
-			m.color = m.color  # o setter republica os globals
-			break
-	player.reparent(_surface.get_node("Entities"))
+	base.show()
+	base.process_mode = Node.PROCESS_MODE_INHERIT
+	_reapply_ambient(base)
+	player.reparent(base.get_node("Entities"))
 	player.global_position = _return_position
 	player.velocity = Vector2.ZERO
 	if _map:
@@ -141,17 +199,68 @@ func _goto_map(reward: String) -> void:
 
 	if old:
 		old.queue_free()
-	elif _surface:
-		_surface.hide()
-		_surface.process_mode = Node.PROCESS_MODE_DISABLED
+	else:
+		var base := _base_root()
+		if base:
+			base.hide()
+			base.process_mode = Node.PROCESS_MODE_DISABLED
 
 	player.reparent(_map.get_node("Entities"))
 	player.global_position = _map.spawn_position
 	player.velocity = Vector2.ZERO
 
+## Troca a região ativa (com fade) — chamado por entities/region_edge.gd ao
+## encostar numa borda. `local_pos` é a posição DENTRO da região de
+## destino, sem o offset dela (goto_region soma sozinho via to_global).
+## Não funciona durante uma run (não existe "sair pra outra região" no meio
+## de uma run, mesma regra do talismã).
+func goto_region(id: int, local_pos: Vector2) -> void:
+	if in_run or _fading or id == current_region_id or _get_player() == null:
+		return
+	if not _region_defs.has(id):
+		push_warning("WorldLayers: região %d não cadastrada em %s." % [id, REGIONS_DIR])
+		return
+	_transition(_do_goto_region.bind(id, local_pos))
+
+func _do_goto_region(id: int, local_pos: Vector2) -> void:
+	var player := _get_player()
+	if player == null:
+		return
+	var new_root := _get_or_create_region_root(id)
+	if new_root == null:
+		return
+	var old_root := _active_root()
+	if old_root and old_root != new_root:
+		old_root.hide()
+		old_root.process_mode = Node.PROCESS_MODE_DISABLED
+	new_root.show()
+	new_root.process_mode = Node.PROCESS_MODE_INHERIT
+	_reapply_ambient(new_root)
+	current_region_id = id
+	player.reparent(new_root.get_node("Entities"))
+	player.global_position = new_root.to_global(local_pos)
+	player.velocity = Vector2.ZERO
+	SaveManager.save_game()
+
+## Pega a raiz já viva de uma região ou instancia (primeira visita — fica
+## viva escondida depois disso, pelo resto da sessão; ver docs no topo).
+func _get_or_create_region_root(id: int) -> Node2D:
+	if id == 1:
+		return _base_root()
+	if _region_roots.has(id):
+		return _region_roots[id]
+	var def: RegionDef = _region_defs.get(id)
+	if def == null or def.scene == null:
+		return null
+	var root: Node2D = def.scene.instantiate()
+	root.position = def.offset
+	get_tree().root.add_child(root)
+	_region_roots[id] = root
+	return root
+
 ## Morte unificada (pilar 3: morrer atrasa, nunca pune de verdade):
-## na run OU na superfície, acorda na base com metade da vida. A fome
-## também é reposta ao mínimo de 50% — senão morte por fome vira loop.
+## em qualquer lugar, acorda na base com metade da vida. A fome também é
+## reposta ao mínimo de 50% — senão morte por fome vira loop.
 func _on_player_died() -> void:
 	await get_tree().create_timer(2.0).timeout
 	GameState.is_dead = false
@@ -161,6 +270,8 @@ func _on_player_died() -> void:
 	GameState.hunger_changed.emit(GameState.hunger, GameState.max_hunger)
 	if in_run:
 		end_run()
+	elif current_region_id != 1:
+		goto_region(1, home_position)
 	else:
 		var player := _get_player()
 		if player:
@@ -168,28 +279,51 @@ func _on_player_died() -> void:
 		SaveManager.save_game()
 
 ## Reset completo do mundo (usado pelo "Recomeçar do zero" do pause).
+## Regiões extras (id != 1) foram adicionadas como irmãs de current_scene
+## (get_tree().root.add_child), então sobrevivem a reload_current_scene()
+## se não forem liberadas na mão — igual já valia pro mapa de run.
 func reset_world() -> void:
 	in_run = false
 	map_index = 0
+	current_region_id = 1
 	_fading = false
 	_fade_rect.color.a = 0.0
 	if _map:
 		_map.queue_free()
 		_map = null
-	_surface = null
+	for id: int in _region_roots.keys():
+		if id != 1:
+			var root: Node2D = _region_roots[id]
+			if root:
+				root.queue_free()
+	_region_roots.clear()
 
-## Nó da superfície (mesmo durante uma run).
+## Nó da base (região 1) — mesmo durante uma run ou numa região 2+. Usado
+## por SaveManager/BuildMode, que só lidam com a base (só ela tem
+## estruturas construíveis — ver docs/plano-2-anos.md §2).
 func surface_root() -> Node2D:
-	if in_run and _surface:
-		return _surface
-	return get_tree().current_scene as Node2D
+	return _base_root()
 
-## Posição do player na superfície (ponto de retorno, se estiver em run).
+## Posição do player na base (ponto de retorno, se estiver em run ou numa
+## região 2+ — ver limitação de v1 no topo do arquivo).
 func surface_player_position() -> Vector2:
 	if in_run:
 		return _return_position
+	if current_region_id != 1:
+		return home_position
 	var p := _get_player()
 	return p.global_position if p else Vector2.ZERO
 
 func _get_player() -> CharacterBody2D:
 	return get_tree().get_first_node_in_group("player") as CharacterBody2D
+
+## Raiz da região ativa agora — exposta pra quem precisa desenhar/consultar
+## a região atual sem duplicar a lógica de _active_root() (ver ui/map_view.gd).
+func active_root() -> Node2D:
+	return _active_root()
+
+## Nome de exibição de uma região cadastrada (ou "?" se o id não existir) —
+## usado pelo mapa simples (M) pra rotular bordas de região.
+func get_region_name(id: int) -> String:
+	var def: RegionDef = _region_defs.get(id)
+	return def.display_name if def else "?"

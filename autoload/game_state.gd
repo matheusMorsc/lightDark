@@ -28,6 +28,22 @@ var health: float = max_health
 var hunger: float = max_hunger
 var is_dead: bool = false
 
+## I-frames genéricas (hoje só o dash do player usa): enquanto true,
+## take_damage() não faz nada. Qualquer sistema pode ligar/desligar.
+var invulnerable: bool = false
+
+## Multiplicadores/bônus permanentes da árvore de progressão (ver
+## UpgradeTracker) — 1.0/0.0 = sem bônus nenhum. Quem lê: player.gd (dano,
+## dash, velocidade, lanterna) e resource_node.gd (coleta). Comprar um
+## upgrade soma/multiplica aqui na hora; carregar o save reaplica do zero
+## a partir da lista de upgrades comprados (esses valores não são salvos
+## diretamente).
+var attack_damage_mult: float = 1.0
+var dash_cooldown_mult: float = 1.0
+var speed_mult: float = 1.0
+var lantern_range_mult: float = 1.0
+var resource_yield_bonus_pct: float = 0.0
+
 ## Ferramenta atualmente equipada ("" = mãos livres). Validada contra o
 ## inventário em get_equipped_tool() — sumiu do inventário, desequipa.
 var equipped_tool_id: String = ""
@@ -54,7 +70,7 @@ func _process(delta: float) -> void:
 		take_damage(starve_damage_per_second * delta)
 
 func take_damage(amount: float) -> void:
-	if is_dead or amount <= 0.0:
+	if is_dead or amount <= 0.0 or invulnerable:
 		return
 	health = max(0.0, health - amount)
 	health_changed.emit(health, max_health)
@@ -224,6 +240,12 @@ func reset() -> void:
 	health = max_health
 	hunger = max_hunger
 	is_dead = false
+	invulnerable = false
+	attack_damage_mult = 1.0
+	dash_cooldown_mult = 1.0
+	speed_mult = 1.0
+	lantern_range_mult = 1.0
+	resource_yield_bonus_pct = 0.0
 	equipped_tool_id = ""
 	tool_equipped.emit("")
 	inventory = []

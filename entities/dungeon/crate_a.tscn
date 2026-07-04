@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/boxes/1.png" id="1"]
 [ext_resource type="Shader" path="res://addons/lit/shaders/lit_receiver.gdshader" id="2"]
 [ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/characters/other/Shadow.png" id="4"]
+[ext_resource type="Script" path="res://entities/dungeon/breakable_prop.gd" id="5"]
 
 [sub_resource type="CanvasTexture" id="CT_crate_a"]
 diffuse_texture = ExtResource("1")
@@ -17,6 +18,7 @@ size = Vector2(22.1, 9.9)
 polygon = PackedVector2Array(-11.05, 0, -6.63, -4.95, 6.63, -4.95, 11.05, 0, 6.63, 4.95, -6.63, 4.95)
 
 [node name="CrateA" type="StaticBody2D"]
+script = ExtResource("5")
 
 [node name="ShadowBlob" type="Sprite2D" parent="."]
 texture = ExtResource("4")

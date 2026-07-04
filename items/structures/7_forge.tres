@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StructureDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/structure_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://entities/structures/forge.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "forge"
+display_name = "Forja"
+scene = ExtResource("2")
+costs = {
+"pedra": 6,
+"minerio": 4
+}
+required_upgrade_id = "constr_forge"
+requires_workbench_nearby = true

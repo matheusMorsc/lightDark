@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://progression/upgrade_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "explore_lantern_range"
+display_name = "Lanterna Encantada"
+description = "+25% de alcance da luz pessoal (com a lanterna equipada)"
+branch = 1
+cost_essencia = 3
+requires = ""
+effect = 3
+value = 0.25
+sort_order = 1

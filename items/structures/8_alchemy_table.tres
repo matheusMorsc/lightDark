@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StructureDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/structure_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://entities/structures/alchemy_table.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "alchemy_table"
+display_name = "Mesa de Alquimia"
+scene = ExtResource("2")
+costs = {
+"madeira": 6,
+"fibra": 4
+}
+required_upgrade_id = "constr_alchemy"
+requires_workbench_nearby = true

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://progression/upgrade_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "combat_damage_2"
+display_name = "Fio Afiado II"
+description = "+10% dano corpo a corpo (cumulativo)"
+branch = 0
+cost_essencia = 5
+requires = "combat_damage_1"
+effect = 0
+value = 0.1
+sort_order = 2

@@ -1,24 +1,36 @@
 extends Node
-## BuildMode (autoload): modo de construção da base (só na superfície).
-## B alterna; 1..N escolhe a estrutura; o ghost segue o mouse com snap de
-## 8px e fica verde/vermelho conforme a validade (custo + alcance + espaço
-## livre); clique esquerdo constrói e desconta os recursos.
+## BuildMode (autoload): modo de construção — só funciona na região 1 (a
+## base; ver WorldLayers §Regiões). B alterna; 1..N escolhe a estrutura; o
+## ghost segue o mouse com snap de 8px e fica verde/vermelho conforme a
+## validade (custo + alcance + espaço livre + Workbench por perto quando
+## exigido); clique esquerdo constrói e desconta os recursos.
 ## Estruturas são StructureDef (.tres) em res://items/structures — adicionar
-## uma nova = criar um .tres + uma cena, nenhum código muda.
+## uma nova = criar um .tres + uma cena, nenhum código muda. Estruturas com
+## `required_upgrade_id` só entram na lista numerada depois de compradas na
+## árvore de progressão (ver UpgradeTracker) — a lista completa fica em
+## `_all_defs`, a disponível (o que o jogador realmente vê) em `_defs`.
 
 const STRUCTURES_DIR := "res://items/structures"
 const PLACE_RANGE := 130.0
 const SNAP := 8.0
+## Raio pra "perto da Workbench" — estruturas com requires_workbench_nearby
+## só podem ser erguidas dentro dessa distância de uma Workbench já construída.
+const WORKBENCH_RANGE := 200.0
 
 var active: bool = false
 ## Frame em que o modo foi fechado (o ESC que fecha não deve abrir o pause).
 var last_exit_frame := -1
 
+var _all_defs: Array[StructureDef] = []
+## Subconjunto de _all_defs realmente disponível agora (desbloqueados) —
+## é o que aparece numerado no modo construção. Recalculada ao abrir o modo
+## e sempre que um upgrade é comprado.
 var _defs: Array[StructureDef] = []
 var _index: int = 0
 var _ghost: Node2D = null
 var _hint: Label = null
 var _valid: bool = false
+var _invalid_reason: String = ""
 var _b_was := false
 var _click_was := false
 var _num_was: Array[bool] = []
@@ -36,10 +48,31 @@ func _ready() -> void:
 		if not file.ends_with(".tres"):
 			continue
 		var def := load(STRUCTURES_DIR + "/" + file) as StructureDef
-		if def != null and def.scene != null:
-			_defs.append(def)
+		# Fica como aviso permanente (não print de debug): um StructureDef
+		# que falha ao carregar não trava o jogo, só desaparece em silêncio
+		# da lista do modo B — já aconteceu (ver PROJECT_STATUS.md, "Color()
+		# com 3 argumentos não é aceito no parser de recurso .tscn/.tres,
+		# só na expressão GDScript — precisa sempre dos 4 componentes).
+		if def == null:
+			push_warning("BuildMode: falha ao carregar ", file, " (load() retornou null ou não é StructureDef).")
+			continue
+		if def.scene == null:
+			push_warning("BuildMode: ", file, " carregou mas def.scene é null (cena referenciada não resolveu).")
+			continue
+		_all_defs.append(def)
+	_refresh_available()
+	UpgradeTracker.purchased.connect(func(_def: UpgradeDef) -> void: _refresh_available())
+
+## Recalcula quais estruturas o jogador já pode construir (sem upgrade
+## exigido, ou upgrade já comprado). Chamada na abertura do modo e sempre
+## que UpgradeTracker avisa uma compra nova.
+func _refresh_available() -> void:
+	_defs = _all_defs.filter(func(d: StructureDef) -> bool:
+		return d.required_upgrade_id == "" or UpgradeTracker.is_purchased(d.required_upgrade_id)
+	)
 	_num_was.resize(_defs.size())
 	_num_was.fill(false)
+	_index = clampi(_index, 0, maxi(0, _defs.size() - 1))
 
 func _process(_delta: float) -> void:
 	var b_pressed := Input.is_key_pressed(KEY_B)
@@ -49,7 +82,7 @@ func _process(_delta: float) -> void:
 
 	if not active:
 		return
-	if WorldLayers.in_run or GameState.is_dead:
+	if WorldLayers.in_run or GameState.is_dead or WorldLayers.current_region_id != 1:
 		_exit()
 		return
 
@@ -70,7 +103,10 @@ func _process(_delta: float) -> void:
 func _toggle() -> void:
 	if active:
 		_exit()
-	elif not WorldLayers.in_run and not GameState.is_dead and not _defs.is_empty():
+	elif not WorldLayers.in_run and not GameState.is_dead and WorldLayers.current_region_id == 1:
+		_refresh_available()
+		if _defs.is_empty():
+			return
 		active = true
 		_refresh_ghost()
 
@@ -99,9 +135,6 @@ func _refresh_ghost() -> void:
 	_hint.custom_minimum_size = Vector2(200, 0)
 	_hint.position = Vector2(-100, -72)
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_hint.text = "%s — %s\n[1..%d] troca | clique: construir | B: sair" % [
-		def.display_name, _cost_text(def), _defs.size()
-	]
 	_ghost.add_child(_hint)
 
 func _disable_collisions(node: Node) -> void:
@@ -121,8 +154,33 @@ func _update_ghost() -> void:
 	var def := _defs[_index]
 	var player := _player()
 	var near := player != null and player.global_position.distance_to(pos) <= PLACE_RANGE
-	_valid = GameState.can_afford(def.costs) and near and _space_free(pos)
+	var has_workbench := not def.requires_workbench_nearby or _workbench_nearby(pos)
+	var affordable := GameState.can_afford(def.costs)
+	var space := _space_free(pos)
+	_valid = affordable and near and space and has_workbench
 	_ghost.modulate = Color(0.5, 1.0, 0.5, 0.65) if _valid else Color(1.0, 0.4, 0.4, 0.5)
+
+	_invalid_reason = ""
+	if not affordable:
+		_invalid_reason = "faltam recursos"
+	elif not near:
+		_invalid_reason = "longe demais do personagem"
+	elif not has_workbench:
+		_invalid_reason = "precisa estar perto de uma Workbench"
+	elif not space:
+		_invalid_reason = "sem espaço livre aqui"
+	if _hint:
+		var status := (" — %s" % _invalid_reason) if _invalid_reason != "" else ""
+		_hint.text = "%s — %s%s\n[1..%d] troca | clique: construir | B: sair" % [
+			def.display_name, _cost_text(def), status, _defs.size()
+		]
+
+## true se existir alguma Workbench construída dentro de WORKBENCH_RANGE.
+func _workbench_nearby(pos: Vector2) -> bool:
+	for n in get_tree().get_nodes_in_group("workbench"):
+		if n is Node2D and (n as Node2D).global_position.distance_to(pos) <= WORKBENCH_RANGE:
+			return true
+	return false
 
 ## Espaço livre = nenhum corpo físico na pegada da estrutura.
 func _space_free(pos: Vector2) -> bool:
@@ -167,3 +225,17 @@ func _world_entities() -> Node2D:
 
 func _player() -> CharacterBody2D:
 	return get_tree().get_first_node_in_group("player") as CharacterBody2D
+
+## Lista das estruturas disponíveis agora (já desbloqueadas) — usado pelo
+## painel do HUD que lista as opções numeradas (ver hud.gd::_refresh_build_panel).
+## Sem isso o jogador só descobria estruturas novas apertando números às
+## cegas, sem saber quantas existem ou quais teclas usar.
+func get_available() -> Array[StructureDef]:
+	return _defs
+
+## Índice selecionado agora (pra destacar a linha correspondente na lista).
+func get_selected_index() -> int:
+	return _index
+
+func get_cost_text(def: StructureDef) -> String:
+	return _cost_text(def)

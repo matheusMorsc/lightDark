@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://entities/enemy.tscn" id="2"]
@@ -22,6 +22,7 @@
 [ext_resource type="PackedScene" path="res://entities/stone_node_c.tscn" id="23"]
 [ext_resource type="PackedScene" path="res://entities/stone_node_d.tscn" id="34"]
 [ext_resource type="PackedScene" path="res://entities/stone_node_e.tscn" id="35"]
+[ext_resource type="PackedScene" path="res://entities/region_edge.tscn" id="36"]
 
 [node name="Biome1" type="Node2D"]
 
@@ -285,6 +286,11 @@ position = Vector2(145, 145)
 
 [node name="OreSpawn2" parent="Entities" instance=ExtResource("9")]
 position = Vector2(-145, -115)
+
+[node name="EdgeToRegion2" parent="Entities" instance=ExtResource("36")]
+position = Vector2(1000, 0)
+target_region_id = 2
+spawn_position = Vector2(-880, 0)
 
 [node name="PostProcess" type="CanvasLayer" parent="."]
 layer = 5

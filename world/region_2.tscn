@@ -1,0 +1,45 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="PackedScene" path="res://world/cave_floor.tscn" id="1"]
+[ext_resource type="Script" path="res://addons/lit/nodes/lit_canvas_modulate.gd" id="2"]
+[ext_resource type="PackedScene" path="res://entities/resource_node.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://entities/ore_node.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://entities/enemy.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://entities/region_edge.tscn" id="6"]
+
+[node name="Region2" type="Node2D"]
+
+[node name="LitCanvasModulate" type="Node2D" parent="."]
+script = ExtResource("2")
+color = Color(0.55, 0.68, 0.6, 1)
+
+[node name="CaveFloor" parent="." instance=ExtResource("1")]
+
+[node name="Entities" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="ResourceNode1" parent="Entities" instance=ExtResource("3")]
+position = Vector2(-500, -100)
+
+[node name="ResourceNode2" parent="Entities" instance=ExtResource("3")]
+position = Vector2(-200, 200)
+
+[node name="ResourceNode3" parent="Entities" instance=ExtResource("3")]
+position = Vector2(200, -250)
+
+[node name="OreNode1" parent="Entities" instance=ExtResource("4")]
+position = Vector2(-350, 150)
+
+[node name="OreNode2" parent="Entities" instance=ExtResource("4")]
+position = Vector2(300, 100)
+
+[node name="Enemy1" parent="Entities" instance=ExtResource("5")]
+position = Vector2(0, 250)
+
+[node name="Enemy2" parent="Entities" instance=ExtResource("5")]
+position = Vector2(-250, -300)
+
+[node name="EdgeToBase" parent="Entities" instance=ExtResource("6")]
+position = Vector2(-1000, 0)
+target_region_id = 1
+spawn_position = Vector2(880, 0)

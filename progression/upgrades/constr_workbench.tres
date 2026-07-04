@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://progression/upgrade_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "constr_workbench"
+display_name = "Workbench"
+description = "Desbloqueia a Workbench, construível na base — primeiro passo da cadeia de estações"
+branch = 2
+cost_essencia = 4
+requires = ""
+effect = 5
+value = 0.0
+sort_order = 1

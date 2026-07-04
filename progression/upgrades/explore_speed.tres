@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://progression/upgrade_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "explore_speed"
+display_name = "Pés Ligeiros"
+description = "+8% de velocidade de movimento"
+branch = 1
+cost_essencia = 5
+requires = ""
+effect = 2
+value = 0.08
+sort_order = 3

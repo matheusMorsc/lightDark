@@ -49,7 +49,9 @@ var resource_yield_bonus_pct: float = 0.0
 var equipped_tool_id: String = ""
 
 ## Slot selecionado na hotbar (1..0 ou scroll). Selecionar uma ferramenta
-## equipa na hora; comida selecionada é a que o E consome primeiro.
+## equipa na hora; selecionar qualquer outra coisa (comida, recurso, slot
+## vazio) desequipa — ver select_slot(). Comida selecionada é a que o
+## botão direito do mouse consome (ver player.gd::_eat).
 var selected_slot: int = 0
 
 ## Array de tamanho fixo INVENTORY_SIZE. Cada slot é null (vazio) ou
@@ -199,13 +201,21 @@ func craft(recipe_id: String, costs: Dictionary, result_id: String = "", result_
 	recipe_crafted.emit(recipe_id)
 	return true
 
+## Selecionar um slot com ferramenta/arma equipa na hora; selecionar
+## QUALQUER outra coisa (comida, recurso, slot vazio) desequipa — sem isso,
+## o item equipado ficava "grudado" ao trocar de slot (bug real: dava pra
+## usar o ataque especial em área, que exige arma, mesmo com a espada há
+## muito fora do slot selecionado, só porque ela tinha sido equipada antes
+## e nunca foi explicitamente trocada por outra ferramenta).
 func select_slot(index: int) -> void:
 	selected_slot = clampi(index, 0, INVENTORY_SIZE - 1)
 	var slot: Variant = inventory[selected_slot] if selected_slot < inventory.size() else null
-	if slot != null:
-		var def: ItemDef = ItemDB.get_def(slot.item_id)
-		if def and def.category == ItemDef.Category.TOOL:
-			equip_tool(slot.item_id)
+	var def: ItemDef = ItemDB.get_def(slot.item_id) if slot != null else null
+	if def and def.category == ItemDef.Category.TOOL:
+		equip_tool(slot.item_id)
+	elif equipped_tool_id != "":
+		equipped_tool_id = ""
+		tool_equipped.emit("")
 	selected_slot_changed.emit(selected_slot)
 
 ## Equipa uma ferramenta que esteja no inventário.

@@ -9,4 +9,4 @@ display_name = "Picareta I"
 costs = {"madeira": 2, "pedra": 4}
 result_id = "picareta_t1"
 result_count = 1
-sort_order = 2
+sort_order = 3

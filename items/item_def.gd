@@ -13,9 +13,20 @@ enum Category { RESOURCE, TOOL, FOOD, STRUCTURE }
 
 @export_group("Ferramenta")
 ## Tipo de ferramenta ("machado", "picareta"...). Nós de recurso exigem
-## tipo + tier mínimo pra serem coletados.
+## tipo + tier mínimo pra serem coletados. "" pra uma arma pura (ver grupo
+## "Arma" abaixo) — participa da categoria TOOL e do equipar-por-seleção
+## normalmente (ver GameState.select_slot), só não serve pra colher nada.
 @export var tool_type: String = ""
 @export var tool_tier: int = 0
+
+@export_group("Arma")
+## Somado a `player.attack_damage` (antes do multiplicador de upgrades)
+## enquanto este item estiver EQUIPADO como ferramenta atual — mesmo
+## sistema de "uma ferramenta ativa por vez" de sempre: selecionar o slot
+## dela na hotbar equipa (ver GameState.select_slot). Faz craftar uma arma
+## na Forja ser uma troca real: equipar pra lutar melhor custa não poder
+## colher com machado/picareta ao mesmo tempo.
+@export var weapon_damage_bonus: float = 0.0
 
 @export_group("Comida")
 @export var hunger_restore: float = 0.0

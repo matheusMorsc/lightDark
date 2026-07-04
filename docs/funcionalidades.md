@@ -6,7 +6,7 @@
 > decisões de design). **Regra: sempre que uma funcionalidade nova entrar no
 > jogo, atualizar este arquivo na mesma sessão.**
 
-Última atualização: 2026-07-03 (sistema de regiões — WorldLayers multi-região).
+Última atualização: 2026-07-03 (Forja com função própria: Tier II + Espada da Forja).
 
 ---
 
@@ -25,14 +25,41 @@
 - **Dash (Shift)**: impulso instantâneo, sem telegraph, ~0.16s de duração,
   cooldown de 0.7s, sem custo de recurso. Direção = movimento que estiver
   segurando, ou o último facing se estiver parado. Concede invencibilidade
-  (`GameState.invulnerable`, flag genérica) durante o impulso; bloqueia e é
-  bloqueado por ataque, pra não misturar os dois estados. Sem animação
+  (`GameState.invulnerable`, flag genérica) durante o impulso. Sem animação
   própria (reaproveita a animação de walk + rajada de partículas na saída).
+- **"Ataque rápido"** (registrado jul/2026): o ataque normal (Espaço/clique)
+  já NÃO é mais bloqueado durante o dash — dá pra atacar no meio do impulso,
+  ou numa janela curta (`DASH_ATTACK_GRACE = 0.15s`) logo depois dele.
+  Nessa janela o alcance do golpe cresce bastante (`QUICK_ATTACK_MAX_DIST =
+  110`, contra `ATTACK_MAX_DIST = 64` normal — a `CollisionShape2D` da
+  `AttackArea` já é fisicamente maior pra suportar isso, ver `player.tscn`);
+  continua sendo alvo único, só fica bem mais fácil de conectar num inimigo
+  que você acabou de passar correndo.
+- **Ataque especial em área (Q)** (registrado jul/2026): golpe giratório
+  que acerta TODOS os alvos num raio ao redor do jogador
+  (`SPECIAL_ATTACK_RADIUS = 100`), ao contrário do ataque normal (alvo
+  único). Dano é instantâneo (aplicado no frame em que Q é apertado); o
+  visual — um anel se expandindo — é o mesmo do ataque "Pancada" do Boss da
+  dungeon (`boss.gd::_do_slam`/`_draw`), só que aqui é puramente cosmético e
+  toca DEPOIS do dano, não antes. Só funciona com uma arma equipada
+  (`ItemDef.weapon_damage_bonus > 0` — ver abaixo); com machado/picareta
+  equipados não faz nada. Cooldown de 2.5s (`SPECIAL_ATTACK_COOLDOWN`) pra
+  não virar o ataque padrão — é um "nuke" ocasional. Não funciona durante o
+  dash (diferente do ataque normal, que agora funciona).
 - Facing de 4 direções com animações idle/walk/attack/death próprias por
   direção.
 - Cursor do mouse troca sozinho conforme o que está embaixo dele: espada
   sobre inimigo, picareta sobre recurso, seta normal no resto (só visual —
   o jogo é 100% controlado por teclado).
+- **Dano do ataque é fixo por padrão** (`player.attack_damage`, 10 hoje) —
+  machado e picareta NÃO davam bônus de dano até agora. **Armas puras**
+  (registrado jul/2026, `ItemDef.weapon_damage_bonus`) mudam isso: um item
+  categoria TOOL sem `tool_type` (não serve pra colher nada) que soma dano
+  fixo enquanto equipado — reaproveita a seleção por hotbar de "uma
+  ferramenta ativa por vez" (ver "Coleta e ferramentas" acima), então lutar
+  com a arma custa não poder colher ao mesmo tempo. Primeira arma: **Espada
+  da Forja** (+15 de dano — mais que dobra o ataque base de 10, e libera o
+  ataque especial em área), craftada só perto da Forja.
 
 ## Vida, fome e morte
 
@@ -47,9 +74,14 @@
 ## Inventário e itens
 
 - Hotbar de 10 slots — é uma grade real (não contador), empilha
-  automaticamente até o máximo de cada item. Seleção por tecla 1..0 ou
-  scroll do mouse; selecionar uma ferramenta já equipa; E come a comida
-  selecionada primeiro (senão, a primeira comida encontrada nos slots).
+  automaticamente até o máximo de cada item. Seleção por tecla 1..0,
+  scroll do mouse ou clique no slot; selecionar uma ferramenta/arma já
+  equipa, selecionar qualquer outra coisa desequipa (slot vazio, recurso
+  ou comida — ver `GameState.select_slot`). **Comer mudou (jul/2026)**:
+  não é mais automático no E; agora é clique direito do mouse, e só come
+  o que estiver no slot selecionado no momento (nada de escanear o
+  inventário atrás da primeira comida) — mesma lógica de "selecionar pra
+  usar" que já valia pra ferramentas.
 - Drag-and-drop entre slots: solta sobre outro item igual empilha (até o
   máximo, sobra fica no slot de origem), solta sobre item diferente troca
   de posição. O mesmo sistema funciona entre a hotbar e o baú (ver abaixo).
@@ -63,24 +95,71 @@
 
 - Gating em cadeia: fibra e pedra são coletáveis à mão (arbustos e pedras
   soltas) → Machado I (4 fibra + 3 pedra) libera cortar árvores → madeira
-  → Picareta I (2 madeira + 4 pedra) libera minerar minério → Picareta II
-  (2 madeira + 4 minério) craftável, reservada pra gating futuro (nada
-  exige tier 2 ainda).
+  → Picareta I (2 madeira + 4 pedra) libera minerar minério.
+- **Tier II é upgrade, não item solto** (registrado jul/2026): Machado II e
+  Picareta II agora CONSOMEM a ferramenta Tier I correspondente + madeira +
+  minério — craftar não deixa as duas versões ocupando espaço, troca uma
+  pela outra. Só craftáveis perto da Forja (ver "Estações com função"
+  abaixo). Ainda não existe nenhum nó de recurso que EXIJA tier 2 pra
+  colher — o upgrade hoje é só sobre a arma equivalente ficar mais forte
+  em combate (nenhuma, já que machado/picareta não causam dano — ver
+  "Combate" abaixo); a gente que colhe com tier 2 é idêntica à tier 1.
 - Nós de recurso exigem ferramenta EQUIPADA (tipo + tier mínimo) pra
   ceder loot; sem ela, escurecem e mostram aviso flutuante "Requer X".
 - Drop tables por nó (chance/min/max independentes por entrada) — ex:
   arbusto sempre dropa 1–2 fibra e tem 35% de chance de dropar comida
   junto.
-- Q cicla entre as ferramentas presentes no inventário.
+- **Equipar é selecionar na hotbar** (mudou jul/2026 — antes existia Q pra
+  ciclar; removido): escolher um slot com uma ferramenta/arma (1..0, scroll
+  ou clique no slot) equipa na hora, junto com virar o slot selecionado
+  (`GameState.select_slot`, já fazia isso — Q era só um atalho redundante
+  em cima do mesmo mecanismo). Armas puras (ver abaixo) entram no mesmo
+  ciclo de seleção que machado/picareta, já que compartilham a categoria
+  TOOL; equipar uma arma pra lutar melhor custa não poder colher ao mesmo
+  tempo (decisão de design, não bug). Clique no slot é feito em
+  `inventory_slot.gd::_gui_input`, só ativo quando `container == null` (a
+  hotbar do jogador — no baú clicar não seleciona nada, não existe
+  "selecionado" lá). Isso expôs uma pegadinha: o ataque do player lê estado
+  bruto do mouse (`Input.is_mouse_button_pressed`), que não é filtrado por
+  cima de UI — clicar num slot também "atacaria" se não fosse por um guard
+  novo em `player.gd` (`get_viewport().gui_get_hovered_control() != null`
+  cancela o clique de ataque quando o mouse está sobre qualquer Control).
 
 ## Crafting
 
 - Painel de craft (C abre/fecha) se monta sozinho a partir das receitas
   cadastradas — nenhuma linha de UI hardcoded.
-- Receitas hoje: Machado I, Picareta I, Picareta II, Lanterna (2 fibra + 2
-  madeira — luz pessoal bem mais forte enquanto no inventário), Refeição
-  Reforçada (5 comida → 1 refeição), Amuleto Vital (3 essências → +25 vida
-  máxima permanente + cura 25 na hora do craft).
+- Receitas hoje: Machado I, Machado II, Picareta I, Picareta II, Espada da
+  Forja, Lanterna (2 fibra + 2 madeira — luz pessoal bem mais forte
+  enquanto no inventário), Refeição Reforçada (5 comida → 1 refeição),
+  Amuleto Vital (3 essências → +25 vida máxima permanente + cura 25 na
+  hora do craft).
+- **Receitas com estação exigida** (`RecipeDef.required_station`, "" = em
+  qualquer lugar): Machado II, Picareta II e Espada da Forja só craftam com
+  uma Forja construída a ~200px (`hud.gd::_near_station`, mesmo raio e
+  mesma ideia do `BuildMode._workbench_nearby`, mas medido a partir do
+  jogador em vez do ghost). Sem a estação por perto, o painel mostra
+  "Precisa estar perto da Forja" em vez de craftar. O painel de craft já
+  lista isso na linha da receita (`"... (perto da Forja)"`).
+
+## Estações com função (registrado jul/2026)
+
+- Antes, as 4 estações da branch Construção (Workbench, Forja, Mesa de
+  Alquimia, Mesa de Pesquisa) só existiam como marco de progressão — nada
+  de verdade exigia estar perto delas. Primeiro passo pra mudar isso:
+  **Forja** agora dá acesso a receitas próprias (`RecipeDef.
+  required_station = "forja"`, ver "Crafting" acima): Machado II, Picareta
+  II e a Espada da Forja. Ainda faltam: Workbench (móveis/melhorias
+  básicas), Mesa de Alquimia (poções/buffs temporários — precisa de um
+  sistema de efeito com duração que ainda não existe) e Mesa de Pesquisa
+  (desbloqueios/receitas especiais).
+- Padrão pra estação nova ter função: um `.tscn` de estrutura recebe um
+  grupo (`groups=["nome_da_estacao"]`, mesmo padrão já usado por
+  `workbench.tscn`/`forge.tscn`); receitas ganham `RecipeDef.
+  required_station` + `required_station_name` apontando pro mesmo grupo;
+  `hud.gd::_near_station` checa a distância até a estrutura mais próxima
+  desse grupo a partir do jogador. Nenhuma estrutura nova de código, só
+  dado.
 
 ## Construção (base)
 
@@ -125,7 +204,7 @@
 - Painel centralizado (`ui/map_view.gd`, um `Control` com `_draw()` — sem
   tiles, sem fog of war) mostrando um esquema de cima pra baixo só da
   REGIÃO ATIVA agora: jogador (ponto branco), bordas de região (ponto
-  roxo + nome do destino, ex. "→ Região do Leste") e estruturas construídas
+  roxo + nome do destino, ex. "→ Terras Corrompidas") e estruturas construídas
   (ponto laranja). Não tenta juntar regiões diferentes na mesma escala —
   elas vivem em offsets espaciais gigantes só pra colisão/luz nunca se
   misturarem (ver "Regiões da superfície" abaixo), então não faria sentido
@@ -160,12 +239,29 @@
   da borda espelhada do outro lado pra poder voltar. Trava 1.5s depois de
   qualquer troca pra não pingar ida-e-volta se o ponto de chegada nascer
   perto demais dela.
-- **Região 2 hoje é só um graybox de teste** (`world/region_2.tscn`,
-  `world/regions/2_test.tres`): chão próprio, luz ambiente levemente mais
-  esverdeada (só pra notar visualmente que mudou de lugar), 3 recursos + 2
-  minérios + 2 inimigos reaproveitados. Não tem conteúdo próprio de
-  verdade ainda — existe só pra provar que a troca de região funciona de
-  ponta a ponta (fade, reparent do player, luz reaplicada, volta e leva).
+- **Gate de progressão na borda** (`RegionDef.required_biome_unlock`, 0 =
+  sem gate): se a região de destino exigir um bioma desbloqueado
+  (`ObjectiveTracker.is_biome_unlocked`) e ele ainda não estiver, a borda
+  não deixa passar — mostra um aviso flutuante "Ainda não desbloqueado"
+  (mesmo padrão visual do "Requer X" de `resource_node.gd`) e não entra em
+  cooldown, então o jogador pode tentar de novo assim que desbloquear sem
+  precisar esperar. Região 2 (Terras Corrompidas) exige bioma 2.
+- **Região 2 = "Terras Corrompidas"** (`world/region_2.tscn`,
+  `world/regions/2_test.tres`, tema registrado jul/2026 — nome de trabalho,
+  troca fácil): identidade oposta à base (que é mais verde/viva) — ambiente
+  mais escuro e arroxeado (`LitCanvasModulate` acinzentado), manchas de
+  neblina reaproveitando `assets/fx/shadow_blob.png` tingido e ampliado
+  (`Fog/FogPatch1..4`, decorativo, sem colisão), inimigos reaproveitados
+  (`entities/enemy.gd`, sem script novo) com tint arroxeado via `modulate`
+  na raiz da instância (cascata de `CanvasItem` — mais simples que usar
+  `base_modulate`, que só pinta o sprite depois do primeiro hit) e stats de
+  "morto-vivo lento": velocidade menor, vida maior, dano de contato um
+  pouco maior. Recurso próprio da região: **Resíduo Sombrio**
+  (`items/defs/residuo_sombrio.tres`, ainda sem ícone — placeholder
+  deliberado até ter arte de verdade) coletado dos `resource_node`
+  reaproveitados (`resource_id` sobrescrito na instância). Gancho pra
+  branch Magia (hoje vazia): dá pra usar Resíduo Sombrio como custo dos
+  primeiros upgrades de Magia quando ela for desenhada.
 - **Limitação de v1 (registrada jul/2026)**: só a posição na BASE persiste
   entre sessões. Se o jogador salvar (ou fechar o jogo) numa região 2+,
   ele acorda na base ao recarregar — mesma lógica já usada pra morte
@@ -240,8 +336,9 @@
   gastar no Amuleto Vital não desfaz o progresso), Construa 4 estruturas.
 - Painel no HUD (O alterna) mostra o progresso ao vivo de cada um.
 - Completar os três → toast "Bioma 2 desbloqueado!" + flag persistida
-  (`is_biome_unlocked(2)`). O bioma 2 em si ainda não existe — só o gancho
-  de desbloqueio.
+  (`is_biome_unlocked(2)`), que agora realmente abre a borda pra região 2
+  ("Terras Corrompidas" — ver "Regiões da superfície" acima). Antes desse
+  flag, a borda barra a passagem com um aviso.
 
 ## Progressão permanente (árvore de upgrades)
 
@@ -300,13 +397,18 @@
 
 - Barras de vida/fome, indicador de ferramenta equipada, hotbar numerada,
   painel de craft, painel do baú, painel de progressão, painel de
-  objetivos, tutorial inicial (~6s com fade), tela de morte, menu de pause.
-- Pause (ESC): volume persistido entre sessões, continuar, recomeçar do
-  zero (confirmação dupla — único jeito de apagar o save de verdade),
-  salvar e sair.
-- ESC funciona em cadeia por prioridade: fecha pause > fecha cheat > fecha
-  painel do baú > fecha progressão > fecha craft > sai do modo construção
-  > abre o pause.
+  objetivos, mapa simples, tela de morte, menu de pause.
+- Pause (ESC): volume persistido entre sessões, continuar, **Controles**
+  (mostra a lista de teclas — mesmo texto que antes só aparecia ~6s no
+  boot com fade; agora fica sempre acessível aqui, e o boot não mostra
+  mais nada sozinho), recomeçar do zero (confirmação dupla — único jeito
+  de apagar o save de verdade), salvar e sair. "Controles" troca pra uma
+  segunda tela dentro do mesmo painel (botão "Voltar" ou ESC volta pro
+  menu principal sem fechar o pause).
+- ESC funciona em cadeia por prioridade: dentro da tela de Controles só
+  volta um nível (não fecha o pause) > fecha pause > fecha cheat > fecha
+  mapa > fecha painel do baú > fecha progressão > fecha craft > sai do
+  modo construção > abre o pause.
 - **Menu de cheat/debug (F1)**: só existe em build de debug
   (`OS.is_debug_build()` — nunca aparece num export de release). Um botão
   "+10" por item de categoria RESOURCE (madeira, pedra, fibra, minério,

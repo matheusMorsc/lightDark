@@ -17,8 +17,8 @@ radius = 6.0
 height = 24.0
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_attack"]
-radius = 28.0
-height = 104.0
+radius = 48.0
+height = 180.0
 
 [node name="Player" type="CharacterBody2D"]
 collision_layer = 2

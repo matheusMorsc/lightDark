@@ -10,5 +10,5 @@ display_name = "Refeição Reforçada"
 costs = {"comida": 5}
 result_id = "refeicao"
 result_count = 1
-sort_order = 4
+sort_order = 6
 icon = ExtResource("2")

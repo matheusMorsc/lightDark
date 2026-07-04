@@ -18,12 +18,18 @@ placeholder (Kenney + Craftpix); a arte final será desenhada à mão pela dupla
 
 ## Controles
 
-WASD/setas move · Espaço/clique ataca (alvo único priorizado) ·
-Shift dash (instantâneo, i-frames curtas, cooldown) · E come ·
-Q troca ferramenta · 1..0/scroll seleciona hotbar · C craft (ESC fecha) ·
-U progressão permanente (ESC fecha) · B constrói · O painel de objetivos ·
-F interage (baú, talismã, portais) · ESC pause · F1 menu de cheat (só
-build de debug).
+WASD/setas move · Espaço/clique ataca (alvo único priorizado; agora
+funciona durante o dash e numa janela curta depois, com alcance maior —
+"ataque rápido", jul/2026) · Shift dash (instantâneo, i-frames curtas,
+cooldown) · Q ataque especial em área, dano instantâneo + cooldown 2.5s,
+só com arma equipada (jul/2026, ver "Convenções") ·
+1..0/scroll/clique seleciona hotbar — se o slot for ferramenta/arma,
+equipa na hora, qualquer outra coisa desequipa (sem tecla dedicada de
+troca, ver "Convenções") · clique direito come a comida SELECIONADA na
+hotbar (mudou jul/2026 — antes E comia a primeira comida do inventário
+automaticamente) · M mapa · C craft (ESC fecha) · U progressão permanente
+(ESC fecha) · B constrói · O painel de objetivos · F interage (baú,
+talismã, portais) · ESC pause · F1 menu de cheat (só build de debug).
 
 ## Decisões de design
 
@@ -88,8 +94,17 @@ build de debug).
   tecla) e ficam vivas escondidas pelo resto da sessão (offset espacial
   fixo, mesmo truque das runs). `WorldLayers.goto_region(id, pos_local)`.
 - Construção (B) e talismã só funcionam na região 1.
-- Região 2 hoje (`world/region_2.tscn`) é graybox de teste — prova a
-  troca, sem conteúdo de verdade.
+- **Gate de progressão** (`RegionDef.required_biome_unlock`): borda só deixa
+  passar se o bioma exigido já estiver desbloqueado
+  (`ObjectiveTracker.is_biome_unlocked`); senão mostra aviso flutuante,
+  sem cooldown de retry.
+- **Região 2 = "Terras Corrompidas"** (tema registrado jul/2026, nome fácil
+  de trocar): exige bioma 2. Ambiente arroxeado/nebuloso (fog reaproveitando
+  `shadow_blob.png` tingido), inimigos reaproveitados com tint + menos
+  velocidade/mais vida ("morto-vivo lento"), recurso próprio **Resíduo
+  Sombrio** (`items/defs/residuo_sombrio.tres`, sem ícone ainda —
+  placeholder, gancho futuro pra branch Magia). Deixou de ser graybox puro,
+  mas ainda sem NPCs/estruturas próprias.
 - Limitação de v1: só a posição na base persiste entre sessões; salvar
   numa região 2+ acorda na base ao recarregar.
 
@@ -97,11 +112,22 @@ build de debug).
 - **Itens data-driven**: `ItemDef` (.tres em `items/defs/`) — categoria,
   stack, ferramenta (tipo+tier), comida (fome+cura). `ItemDB` carrega a pasta.
 - **Ferramentas com gating**: fibra/pedra à mão → Machado I → madeira →
-  Picareta I → minério → Picareta II. Nós de recurso (`resource_node.gd`)
-  exigem tipo+tier EQUIPADO e têm drop tables; aviso "Requer X" flutuante.
+  Picareta I → minério. Nós de recurso (`resource_node.gd`) exigem
+  tipo+tier EQUIPADO e têm drop tables; aviso "Requer X" flutuante.
 - **Receitas data-driven**: `RecipeDef` (.tres em `items/recipes/`); o painel
   de craft do HUD se monta sozinho. Lanterna (luz pessoal forte só com o
   item), Refeição (comida consumível), Amuleto Vital (3 essências → +25 HP).
+- **Tier II como upgrade + Estações com função (registrado jul/2026)**:
+  Machado II/Picareta II agora CONSOMEM a ferramenta Tier I (não são mais
+  itens soltos e redundantes) e só craftam perto de uma Forja
+  (`RecipeDef.required_station`, checado em `hud.gd::_near_station` — o
+  mesmo raio/ideia do `BuildMode._workbench_nearby`, mas a partir do
+  jogador). Primeira arma pura do jogo: **Espada da Forja**
+  (`ItemDef.weapon_damage_bonus = 15`, aplicado em `player.gd::_attack()`
+  via `_equipped_weapon_bonus()`) — machado/picareta nunca deram dano de
+  combate, isso é novo. Sem ícone ainda (placeholder). Primeiro passo de um
+  plano maior: dar função própria às 4 estações (Workbench, Alquimia e
+  Pesquisa ainda faltam).
 - **Construção (B)**: `BuildMode` autoload + `StructureDef` (.tres em
   `items/structures/`): cerca, fogueira, tocha, **baú**, **talismã**,
   **Workbench, Forja, Mesa de Alquimia, Mesa de Pesquisa**. Ghost com
@@ -212,14 +238,16 @@ build de debug).
    dungeon_tileset — todos recuperados/regenerados): investigar
    OneDrive/antivírus em Downloads; mover o projeto pra fora de Downloads.
 3. Essência agora tem a árvore de progressão além do Amuleto — a branch
-   Magia ainda está vazia (nenhum `.tres` criado). Picareta II segue
-   reservada pra gating futuro.
-4. Bioma 2 desbloqueia mas ainda não existe conteúdo de verdade — só flag +
-   toast do lado dos objetivos, e um graybox de teste (`world/region_2.tscn`)
-   do lado do `WorldLayers`, que já suporta N regiões. Falta desenhar o
-   conteúdo real da região 2 (recursos/inimigos/NPCs próprios) e ligar o
-   desbloqueio de objetivo à liberação da borda (hoje a borda pra região 2
-   já funciona sempre, sem gate nenhum de progressão).
+   Magia ainda está vazia (nenhum `.tres` criado). ~~Picareta II segue
+   reservada pra gating futuro~~ — parcialmente resolvido: agora consome
+   Picareta I ao craftar (não fica mais redundante no inventário), mas
+   ainda não existe nenhum nó de recurso que EXIJA tier 2 pra colher.
+4. ~~Bioma 2 desbloqueia mas não existe conteúdo de verdade / borda sem
+   gate~~ — **RESOLVIDO em parte**. Região 2 agora tem identidade própria
+   ("Terras Corrompidas": ambiente, inimigos reaproveitados com tint+stats,
+   recurso próprio) e a borda exige `is_biome_unlocked(2)`. Ainda falta:
+   NPCs, estruturas, e um ícone de verdade pro Resíduo Sombrio (hoje sem
+   ícone, placeholder deliberado).
 5. Regiões 2+ não persistem posição entre sessões (só a base persiste) —
    ver limitação de v1 em `docs/funcionalidades.md` §"Regiões da
    superfície". Se virar problema real no playtest, dá pra salvar
@@ -234,21 +262,46 @@ build de debug).
    de `BuildMode._ready()` (sem travar o jogo, só sumindo da lista). Fix:
    adicionado `1.0` de alpha nas 3 linhas. Lição registrada em
    "Convenções" abaixo pra não repetir.
+7. ~~Clique do mouse parou de atacar depois da mudança de seleção de
+   ferramenta por hotbar~~ — **RESOLVIDO**. Causa: um guard novo
+   (`get_viewport().gui_get_hovered_control() != null`) pra impedir que
+   clicar num slot da hotbar também disparasse ataque passou a bloquear
+   TODO clique, porque o `Control` raiz de tela cheia da HUD não tinha
+   `mouse_filter` definido (padrão `STOP` = sempre "hover" em qualquer
+   ponto da tela). Fix: `mouse_filter = 2` nesse wrapper. Lição registrada
+   em "Convenções" abaixo.
+8. ~~Ataque especial (Q) funcionava mesmo sem a espada equipada~~ —
+   **RESOLVIDO**. Causa raiz: `GameState.select_slot()` só EQUIPAVA uma
+   ferramenta nova quando o slot selecionado tinha uma, mas nunca
+   DESEQUIPAVA ao selecionar outra coisa (comida, recurso, slot vazio) —
+   `equipped_tool_id` ficava "grudado" na última arma/ferramenta escolhida
+   por baixo dos panos, mesmo com a hotbar mostrando outro item
+   selecionado. Fix: selecionar qualquer slot que não seja ferramenta/arma
+   agora desequipa de verdade. Também corrige o bônus de dano da arma no
+   ataque normal, que tinha o mesmo problema.
 
 ## Próximos passos (ordem recomendada)
-1. **Gate de progressão na borda da região 2**: hoje qualquer um cruza a
-   borda a qualquer momento; decidir se isso deve exigir algo (objetivo
-   cumprido, item, etc.) antes de liberar de verdade.
-2. **Conteúdo real da região 2** (substituindo o graybox de teste):
-   recursos/inimigos/NPCs próprios, coerente com "bioma 2".
-3. **Portal de atalho** (branch Construção ou Magia — decidir): estrutura
+1. **Função da Workbench**: móveis/melhorias básicas (decisão de escopo do
+   usuário, jul/2026) — Forja já resolvida (ver "Estações com função" em
+   `docs/funcionalidades.md`).
+2. **Função da Mesa de Pesquisa**: desbloqueios/receitas especiais — mesmo
+   padrão de dado (`RecipeDef.required_station`), sem sistema novo.
+3. **Função da Mesa de Alquimia**: poções/buffs temporários — a mais
+   arriscada das 4, precisa de um sistema de efeito com duração/expiração
+   que ainda não existe em `GameState` (hoje só há multiplicadores
+   permanentes e o flag binário `invulnerable`).
+4. **Polimento de combate**: novos tipos de ataque pro jogador (área,
+   longa distância, especial) — decisão do usuário foi sequenciar depois
+   das estações, pra ter armas novas saindo delas que justifiquem movesets
+   diferentes em vez de reformar o combate no vácuo.
+5. **Portal de atalho** (branch Construção ou Magia — decidir): estrutura
    de fast-travel entre regiões distantes do mesmo mundo. NÃO é o Talismã
    (esse continua sendo a única entrada pra run) — é conveniência de
    deslocamento, agora que já existe mais de uma região pra viajar entre.
-4. **NPC resgatável + diretor de encontros v1** (T3 do plano): sala de NPC
+6. **NPC resgatável + diretor de encontros v1** (T3 do plano): sala de NPC
    injetada na run por flag de quest, resgate → NPC na base com 1 serviço.
-5. Playtest externo de 30 min; depois seguir o `docs/plano-2-anos.md`.
-6. **Raids na base**: ainda sem mecânica desenhada (gatilho, frequência,
+7. Playtest externo de 30 min; depois seguir o `docs/plano-2-anos.md`.
+8. **Raids na base**: ainda sem mecânica desenhada (gatilho, frequência,
    quem ataca) — projetar quando o resto do loop estiver validado no
    playtest.
 
@@ -271,3 +324,15 @@ build de debug).
 - **Toda funcionalidade nova implementada = atualizar `docs/funcionalidades.md`
   na mesma sessão.** É o catálogo completo do que já existe; deixa de servir
   pra continuidade se ficar desatualizado.
+- **Controles de tela cheia (full-rect) na HUD precisam de `mouse_filter =
+  2` (IGNORE) explícito**, senão viram um "vidro" invisível que captura
+  hover em qualquer ponto da tela — mesmo onde não tem nenhum botão visível
+  — e qualquer código que confira `get_viewport().gui_get_hovered_control()`
+  pra distinguir clique-na-UI de clique-no-mundo passa a achar que a UI
+  está sempre no caminho. Causou um bug real: o clique do mouse pra atacar
+  parou de funcionar por completo assim que um guard desse tipo foi
+  adicionado (`Control` raiz de `ui/hud.tscn`, `anchors_preset = 15`, sem
+  `mouse_filter` definido = padrão `STOP`). Corrigido definindo
+  `mouse_filter = 2` só nesse wrapper raiz — os painéis/slots reais
+  (que têm fundo visível e devem mesmo bloquear clique) continuam com o
+  padrão.

@@ -37,6 +37,17 @@ func set_slot_data(data) -> void:
 func _owner_inventory() -> Object:
 	return container if container != null else GameState
 
+## Clique num slot da HOTBAR DO JOGADOR (não do baú — lá não existe
+## conceito de "selecionado") seleciona o slot; se tiver uma ferramenta
+## ou arma, GameState.select_slot já equipa na hora. Substitui a tecla Q
+## (removida) como forma de trocar de ferramenta — clique é tão direto
+## quanto apertar o número, só que sem precisar saber o número do slot.
+func _gui_input(event: InputEvent) -> void:
+	if container != null or index < 0:
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		GameState.select_slot(index)
+
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if _item_id == "":
 		return null

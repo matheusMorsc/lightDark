@@ -327,3 +327,9 @@ func active_root() -> Node2D:
 func get_region_name(id: int) -> String:
 	var def: RegionDef = _region_defs.get(id)
 	return def.display_name if def else "?"
+
+## RegionDef cru de uma região cadastrada (ou null) — usado por
+## entities/region_edge.gd pra checar `required_biome_unlock` antes de
+## deixar cruzar a borda.
+func get_region_def(id: int) -> RegionDef:
+	return _region_defs.get(id)

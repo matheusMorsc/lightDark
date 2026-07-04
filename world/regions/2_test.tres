@@ -6,7 +6,8 @@
 [resource]
 script = ExtResource("1")
 id = 2
-display_name = "Região do Leste (graybox de teste)"
+display_name = "Terras Corrompidas"
 scene = ExtResource("2")
 is_base = false
 offset = Vector2(200000, 0)
+required_biome_unlock = 2

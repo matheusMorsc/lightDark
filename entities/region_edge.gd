@@ -28,5 +28,26 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 	if not body.is_in_group("player"):
 		return
+	var def := WorldLayers.get_region_def(target_region_id)
+	if def != null and def.required_biome_unlock > 0 and not ObjectiveTracker.is_biome_unlocked(def.required_biome_unlock):
+		_show_locked_hint()
+		return  # sem cooldown aqui — o jogador pode tentar de novo assim que desbloquear
 	_cooldown = 1.5
 	WorldLayers.goto_region(target_region_id, spawn_position)
+
+## Aviso flutuante quando a borda ainda está travada (mesmo padrão visual
+## do "Requer X" de resource_node.gd::_show_hint).
+func _show_locked_hint() -> void:
+	var label := Label.new()
+	label.text = "Ainda não desbloqueado"
+	label.top_level = true
+	label.z_index = 200
+	label.z_as_relative = false
+	label.custom_minimum_size = Vector2(160, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(label)
+	label.global_position = global_position + Vector2(-80, -60)
+	var tween := create_tween()
+	tween.tween_property(label, "global_position:y", label.global_position.y - 16.0, 0.9)
+	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.9)
+	tween.tween_callback(label.queue_free)

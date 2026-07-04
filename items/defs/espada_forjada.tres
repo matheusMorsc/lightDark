@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/item_def.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/recipe_tool.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "espada_forjada"
+display_name = "Espada da Forja"
+icon = ExtResource("2")
+max_stack = 1
+category = 1
+tool_type = ""
+tool_tier = 0
+weapon_damage_bonus = 15.0

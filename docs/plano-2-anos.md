@@ -47,7 +47,10 @@ Base fixa e persistente na superfície (lado Stardew) + dungeons procedurais com
 > demanda ao cruzar uma borda (`entities/region_edge.gd`) e ficam vivas
 > escondidas pelo resto da sessão. Limitação de v1: só a posição na base
 > persiste entre sessões (detalhe em `docs/funcionalidades.md`). Região 2
-> hoje é só um graybox de teste — falta desenhar o conteúdo real dela.
+> já tem identidade própria ("Terras Corrompidas": ambiente arroxeado/
+> nebuloso, inimigos reaproveitados com tint de morto-vivo, recurso
+> exclusivo Resíduo Sombrio, borda com gate de progressão) — deixou de ser
+> graybox puro, mas ainda sem NPCs/estruturas próprias.
 >
 > **Raids na base (novo, ainda sem mecânica desenhada):** runs não servem
 > só pra progredir — a base pode sofrer invasões ocasionais de inimigos, e

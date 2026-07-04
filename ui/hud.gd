@@ -12,9 +12,6 @@ extends CanvasLayer
 @onready var chest_panel: PanelContainer = $Control/ChestPanel
 @onready var upgrades_panel: PanelContainer = $Control/UpgradesPanel
 
-@export var tutorial_duration: float = 6.0
-@export var tutorial_fade_duration: float = 1.0
-
 ## Teclas de craft (o painel se monta sozinho a partir do RecipeDB).
 const RECIPE_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9]
 const HOTBAR_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
@@ -31,6 +28,10 @@ var _objectives_key_was_pressed: bool = false
 var _hotbar_key_was_pressed: Array[bool] = []
 var _esc_was_pressed: bool = false
 var _pause_root: Control
+## Duas telas do menu de pause (ver _build_pause_menu): a de botões normal
+## e a de controles (aberta pelo botão "Controles", volta com "Voltar").
+var _pause_menu_box: VBoxContainer
+var _pause_controls_box: VBoxContainer
 var _volume_slider: HSlider
 var _restart_button: Button
 var _confirm_restart: bool = false
@@ -92,7 +93,10 @@ func _ready() -> void:
 	_on_hunger_changed(GameState.hunger, GameState.max_hunger)
 	_update_inventory()
 
-	get_tree().create_timer(tutorial_duration).timeout.connect(_hide_tutorial)
+	# O painel de tutorial não aparece mais sozinho no boot (some depois de
+	# uns segundos, fácil de perder) — agora só existe dentro do menu de
+	# pause (ESC > Controles), sempre acessível. Ver _build_pause_menu().
+	tutorial_panel.visible = false
 
 	# Indicador da ferramenta equipada (abaixo das barras de vida/fome).
 	_tool_label = Label.new()
@@ -181,7 +185,9 @@ func _update_hotbar_selection(index: int) -> void:
 		_slot_nodes[i].modulate = Color(1.35, 1.3, 0.85) if i == index else Color.WHITE
 
 func _handle_esc() -> void:
-	if _pause_root.visible:
+	if _pause_root.visible and _pause_controls_box.visible:
+		_hide_pause_controls()  # ESC na tela de controles só volta um nível
+	elif _pause_root.visible:
 		_close_pause()
 	elif _debug_panel and _debug_panel.visible:
 		_debug_panel.visible = false
@@ -216,17 +222,24 @@ func _build_pause_menu() -> void:
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var panel := PanelContainer.new()
 	center.add_child(panel)
-	var vbox := VBoxContainer.new()
-	vbox.custom_minimum_size = Vector2(280, 0)
-	vbox.add_theme_constant_override("separation", 10)
-	panel.add_child(vbox)
+
+	# Duas "telas" dentro do mesmo painel — menu principal e controles —
+	# alternadas por visibilidade (só uma some por vez, nunca duas juntas).
+	var outer := VBoxContainer.new()
+	panel.add_child(outer)
+
+	_pause_menu_box = VBoxContainer.new()
+	_pause_menu_box.custom_minimum_size = Vector2(280, 0)
+	_pause_menu_box.add_theme_constant_override("separation", 10)
+	outer.add_child(_pause_menu_box)
+
 	var title := Label.new()
 	title.text = "Pausado"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
-	vbox.add_child(title)
+	_pause_menu_box.add_child(title)
 	var vol_row := HBoxContainer.new()
-	vbox.add_child(vol_row)
+	_pause_menu_box.add_child(vol_row)
 	var vol_label := Label.new()
 	vol_label.text = "Volume "
 	vol_row.add_child(vol_label)
@@ -241,19 +254,53 @@ func _build_pause_menu() -> void:
 	var resume := Button.new()
 	resume.text = "Continuar"
 	resume.pressed.connect(_close_pause)
-	vbox.add_child(resume)
+	_pause_menu_box.add_child(resume)
+	var controls_btn := Button.new()
+	controls_btn.text = "Controles"
+	controls_btn.pressed.connect(_show_pause_controls)
+	_pause_menu_box.add_child(controls_btn)
 	_restart_button = Button.new()
 	_restart_button.text = "Recomeçar do zero"
 	_restart_button.pressed.connect(_on_restart_pressed)
-	vbox.add_child(_restart_button)
+	_pause_menu_box.add_child(_restart_button)
 	var quit := Button.new()
 	quit.text = "Salvar e sair"
 	quit.pressed.connect(_on_quit_pressed)
-	vbox.add_child(quit)
+	_pause_menu_box.add_child(quit)
+
+	# Tela de controles: mesmo texto do tutorial inicial (uma fonte só,
+	# lida do próprio TutorialLabel — sem duplicar a string em dois lugares).
+	_pause_controls_box = VBoxContainer.new()
+	_pause_controls_box.visible = false
+	_pause_controls_box.custom_minimum_size = Vector2(280, 0)
+	_pause_controls_box.add_theme_constant_override("separation", 10)
+	outer.add_child(_pause_controls_box)
+	var controls_title := Label.new()
+	controls_title.text = "Controles"
+	controls_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	controls_title.add_theme_font_size_override("font_size", 24)
+	_pause_controls_box.add_child(controls_title)
+	var controls_label := Label.new()
+	controls_label.text = tutorial_panel.get_node("TutorialLabel").text
+	controls_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pause_controls_box.add_child(controls_label)
+	var back_btn := Button.new()
+	back_btn.text = "Voltar"
+	back_btn.pressed.connect(_hide_pause_controls)
+	_pause_controls_box.add_child(back_btn)
+
+func _show_pause_controls() -> void:
+	_pause_menu_box.visible = false
+	_pause_controls_box.visible = true
+
+func _hide_pause_controls() -> void:
+	_pause_controls_box.visible = false
+	_pause_menu_box.visible = true
 
 func _open_pause() -> void:
 	_confirm_restart = false
 	_restart_button.text = "Recomeçar do zero"
+	_hide_pause_controls()
 	_pause_root.visible = true
 	get_tree().paused = true
 	SaveManager.save_game()
@@ -326,6 +373,9 @@ func _handle_crafting_input() -> void:
 
 func _try_craft(index: int) -> void:
 	var recipe: RecipeDef = _recipes[index]
+	if recipe.required_station != "" and not _near_station(recipe.required_station):
+		crafting_status_label.text = "Precisa estar perto da %s." % recipe.required_station_name
+		return
 	if GameState.craft(recipe.id, recipe.costs, recipe.result_id, recipe.result_count):
 		if recipe.bonus_max_health > 0.0:
 			GameState.max_health += recipe.bonus_max_health
@@ -334,6 +384,20 @@ func _try_craft(index: int) -> void:
 		crafting_status_label.text = "Craftado: %s!" % recipe.display_name
 	else:
 		crafting_status_label.text = "Recursos insuficientes para %s." % recipe.display_name
+
+## true se existir uma estrutura do grupo `group` (ex. "forja") construída
+## dentro do alcance do jogador — mesmo raio e mesma ideia de
+## BuildMode._workbench_nearby, mas medido a partir da posição do jogador
+## (aqui é sobre CRAFTAR, não sobre construir).
+const STATION_RANGE := 200.0
+func _near_station(group: String) -> bool:
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	if player == null:
+		return false
+	for n in get_tree().get_nodes_in_group(group):
+		if n is Node2D and (n as Node2D).global_position.distance_to(player.global_position) <= STATION_RANGE:
+			return true
+	return false
 
 ## Monta as linhas do painel de craft a partir do RecipeDB (data-driven):
 ## remove as linhas estáticas da cena e gera uma por receita carregada.
@@ -354,7 +418,8 @@ func _build_recipe_rows() -> void:
 		icon_rect.texture = r.icon if r.icon else ItemDB.get_icon(r.result_id)
 		row.add_child(icon_rect)
 		var lbl := Label.new()
-		lbl.text = "[%d] %s — %s" % [i + 1, r.display_name, _costs_text(r.costs)]
+		var station_hint := (" (perto da %s)" % r.required_station_name) if r.required_station != "" else ""
+		lbl.text = "[%d] %s — %s%s" % [i + 1, r.display_name, _costs_text(r.costs), station_hint]
 		row.add_child(lbl)
 		vbox.add_child(row)
 	vbox.move_child(crafting_status_label, -1)
@@ -632,14 +697,9 @@ func _on_biome_unlocked(biome: int) -> void:
 
 func _on_tool_equipped(item_id: String) -> void:
 	if item_id == "":
-		_tool_label.text = "Ferramenta: — (Q alterna)"
+		_tool_label.text = "Ferramenta: — (selecione na hotbar)"
 	else:
 		_tool_label.text = "Ferramenta: %s" % ItemDB.get_display_name(item_id)
-
-func _hide_tutorial() -> void:
-	var tween := create_tween()
-	tween.tween_property(tutorial_panel, "modulate:a", 0.0, tutorial_fade_duration)
-	tween.tween_callback(tutorial_panel.hide)
 
 func _on_health_changed(current: float, max_value: float) -> void:
 	health_bar.max_value = max_value

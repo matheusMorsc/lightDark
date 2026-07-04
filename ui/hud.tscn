@@ -51,6 +51,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Control"]
 offset_left = 16.0
@@ -180,7 +181,7 @@ grow_vertical = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_tutorial_bg")
 
 [node name="TutorialLabel" type="Label" parent="Control/TutorialPanel"]
-text = "WASD / Setas: Mover\nEspaço: Atacar / Coletar\nShift: Dash\nE: Comer\nC: Crafting\nU: Progressão (essência)\nQ: Trocar ferramenta\nB: Construir\nM: Mapa\nO: Objetivos\nESC: Pausar\nF: Interagir (baú, talismã, portais)"
+text = "WASD / Setas: Mover\nEspaço: Atacar / Coletar\nShift: Dash\nQ: Ataque especial em área (precisa de arma)\nClique direito: Comer (item selecionado)\n1..0/scroll: Selecionar item (equipa ferramenta/escolhe comida)\nC: Crafting\nU: Progressão (essência)\nB: Construir\nM: Mapa\nO: Objetivos\nESC: Pausar\nF: Interagir (baú, talismã, portais)"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 20
 

@@ -21,3 +21,8 @@ extends Resource
 ## (mesmo truque do offset das runs — mantém regiões fisicamente separadas
 ## pra colisores/luzes nunca se misturarem). Região 1 fica na origem.
 @export var offset: Vector2 = Vector2.ZERO
+## 0 = sem gate, qualquer um cruza a borda a qualquer momento. Senão, o id
+## de um bioma que precisa estar desbloqueado (`ObjectiveTracker.
+## is_biome_unlocked`) antes da borda deixar passar — ver
+## `entities/region_edge.gd`.
+@export var required_biome_unlock: int = 0

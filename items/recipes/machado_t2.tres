@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "picareta_t2"
-display_name = "Picareta II"
-costs = {"picareta_t1": 1, "madeira": 1, "minerio": 5}
-result_id = "picareta_t2"
+id = "machado_t2"
+display_name = "Machado II"
+costs = {"machado_t1": 1, "madeira": 1, "minerio": 5}
+result_id = "machado_t2"
 result_count = 1
-sort_order = 4
+sort_order = 2
 required_station = "forja"
 required_station_name = "Forja"

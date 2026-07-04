@@ -461,10 +461,9 @@ func _near_station(group: String) -> bool:
 ## Abre o painel de craft filtrado por UMA estação (chamado por
 ## station_interact.gd via call_group("hud", ...) ao apertar E perto dela)
 ## — registrado jul/2026. Mostra só as receitas com `required_station ==
-## group`; se `group == "workbench"` (que não tem receita nenhuma, só
-## desbloqueia estruturas), lista também as StructureDef com
-## `requires_workbench_nearby` como linhas informativas (não craftáveis
-## daqui, só um lembrete de "aperte B pra construir").
+## group`; para `group == "workbench"`, mostra as estruturas movidas para o
+## fluxo de interação E da bancada (Baú Grande, Poste de Luz), já com ação
+## de construir.
 func open_station_crafting(group: String, display_name: String, source: Node) -> void:
 	crafting_status_label.text = ""
 	crafting_panel.visible = true
@@ -478,6 +477,8 @@ func open_station_crafting(group: String, display_name: String, source: Node) ->
 	_crafting_station_filter = group
 	_crafting_station_source = source
 	crafting_title_label.text = "%s (E fecha)" % display_name
+	if group == "workbench":
+		BuildMode.force_refresh_available()
 	_build_recipe_rows()
 
 ## Fecha o painel de craft filtrado, mas SÓ se quem pediu pra fechar foi
@@ -535,13 +536,10 @@ func _build_recipe_rows() -> void:
 			continue
 		crafting_recipes_vbox.add_child(_build_recipe_row(i, r))
 		shown += 1
-	# Workbench não tem receita própria — o que ela desbloqueia são
-	# ESTRUTURAS (Baú Grande, Poste de Luz), que são construídas pelo modo B,
-	# não craftadas por aqui. Removido de propósito (jul/2026, pedido do
-	# usuário): listar as estruturas aqui como lembrete informativo confundia
-	# com "dá pra craftar no C" — agora estrutura NUNCA aparece na Crafting,
-	# só no modo B (ver BuildMode/_refresh_build_panel), onde de fato exige
-	# o upgrade "constr_workbench" comprado antes de sequer listar.
+	if _crafting_station_filter == "workbench":
+		for def in BuildMode.get_workbench_e_available():
+			crafting_recipes_vbox.add_child(_build_workbench_build_row(def))
+			shown += 1
 	if shown == 0:
 		var empty_lbl := Label.new()
 		empty_lbl.text = "Nada disponível aqui ainda."
@@ -574,6 +572,30 @@ func _build_recipe_row(index: int, r: RecipeDef) -> Control:
 	btn.pressed.connect(func() -> void: _try_craft(index))
 	row.add_child(btn)
 	return row
+
+func _build_workbench_build_row(def: StructureDef) -> Control:
+	var row := HBoxContainer.new()
+	row.name = "Build_%s" % def.id
+	var icon_rect := TextureRect.new()
+	icon_rect.custom_minimum_size = Vector2(24, 24)
+	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var maybe_icon := ItemDB.get_icon(def.id)
+	if maybe_icon:
+		icon_rect.texture = maybe_icon
+	row.add_child(icon_rect)
+	var btn := Button.new()
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.text = "[construir] %s — %s" % [def.display_name, BuildMode.get_cost_text(def)]
+	btn.pressed.connect(func() -> void: _try_workbench_build(def.id))
+	row.add_child(btn)
+	return row
+
+func _try_workbench_build(def_id: String) -> void:
+	if BuildMode.begin_from_workbench(def_id):
+		_close_crafting_panel()
+	else:
+		crafting_status_label.text = "Não foi possível iniciar construção agora."
 
 func _costs_text(costs: Dictionary) -> String:
 	var parts: PackedStringArray = []
@@ -653,6 +675,8 @@ func _build_upgrade_row(def: UpgradeDef) -> Control:
 		btn.pressed.connect(func() -> void:
 			if UpgradeTracker.purchase(def):
 				_refresh_upgrades_panel()
+				if crafting_panel.visible and _crafting_station_filter == "workbench":
+					_build_recipe_rows()
 		)
 		row.add_child(btn)
 	return row

@@ -16,11 +16,9 @@ extends StaticBody2D
 ## (cenário raro, mas o padrão defensivo não custa nada).
 ##
 ## Reusa o painel de craft do HUD (`hud.gd::open_station_crafting`), só
-## que filtrado por `RecipeDef.required_station == station_group`. A
-## Workbench não tem receita nenhuma (só desbloqueia ESTRUTURAS — Baú
-## Grande, Poste de Luz — construídas pelo modo B, nunca listadas aqui de
-## propósito desde jul/2026): apertar E nela mostra "Nada disponível aqui
-## ainda." mesmo, o que é esperado.
+## que filtrado por `RecipeDef.required_station == station_group`. Para a
+## Workbench (jul/2026), o E agora lista/constrói as estruturas movidas do
+## fluxo geral do B (Baú Grande e Poste de Luz).
 
 @export var station_group: String = ""
 @export var station_display_name: String = ""
@@ -77,6 +75,8 @@ func toggle() -> void:
 func open() -> void:
 	is_open = true
 	label.hide()
+	if station_group == "workbench":
+		BuildMode.force_refresh_available()
 	get_tree().call_group("hud", "open_station_crafting", station_group, station_display_name, self)
 
 func close() -> void:

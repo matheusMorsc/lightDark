@@ -26,6 +26,12 @@ const WORKBENCH_RANGE := 200.0
 ## qualquer quantidade de estruturas além das 10 teclas físicas (ver
 ## _unhandled_input abaixo).
 const BUILD_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
+## Estruturas movidas para a interação E da Workbench (não entram no fluxo
+## geral do B, mas continuam construíveis iniciando BuildMode pela Workbench).
+const WORKBENCH_E_STRUCTURE_IDS := {
+	"bau_grande": true,
+	"poste_luz": true,
+}
 
 var active: bool = false
 ## Frame em que o modo foi fechado (o ESC que fecha não deve abrir o pause).
@@ -88,7 +94,7 @@ func _ready() -> void:
 ## que UpgradeTracker avisa uma compra nova.
 func _refresh_available() -> void:
 	_defs = _all_defs.filter(func(d: StructureDef) -> bool:
-		return d.required_upgrade_id == "" or UpgradeTracker.is_purchased(d.required_upgrade_id)
+		return _is_unlocked(d) and not _is_workbench_e_structure(d)
 	)
 	if OS.is_debug_build():
 		for d in _all_defs:
@@ -99,6 +105,12 @@ func _refresh_available() -> void:
 	_num_was.resize(_defs.size())
 	_num_was.fill(false)
 	_index = clampi(_index, 0, maxi(0, _defs.size() - 1))
+
+func _is_unlocked(def: StructureDef) -> bool:
+	return def.required_upgrade_id == "" or UpgradeTracker.is_purchased(def.required_upgrade_id)
+
+func _is_workbench_e_structure(def: StructureDef) -> bool:
+	return WORKBENCH_E_STRUCTURE_IDS.has(def.id)
 
 func _process(_delta: float) -> void:
 	var b_pressed := Input.is_key_pressed(KEY_B)
@@ -300,3 +312,41 @@ func get_cost_text(def: StructureDef) -> String:
 ## de um número (ver hud.gd::_refresh_build_panel).
 func get_key_count() -> int:
 	return BUILD_KEYS.size()
+
+## Força recálculo das estruturas desbloqueadas no momento (usado pela
+## interação E da Workbench antes de abrir o painel, pra refletir upgrades
+## recém-comprados sem depender do toggle B).
+func force_refresh_available() -> void:
+	_refresh_available()
+
+## Estruturas da Workbench que foram removidas do fluxo geral do B e aparecem
+## na interação E dela (ex.: Baú Grande e Poste de Luz).
+func get_workbench_e_available() -> Array[StructureDef]:
+	return _all_defs.filter(func(d: StructureDef) -> bool:
+		return _is_unlocked(d) and _is_workbench_e_structure(d)
+	)
+
+## Inicia o BuildMode diretamente a partir da interação E da Workbench, com a
+## lista focada só nas estruturas dela.
+func begin_from_workbench(def_id: String) -> bool:
+	if WorldLayers.in_run or GameState.is_dead or WorldLayers.current_region_id != 1:
+		return false
+	var defs := get_workbench_e_available()
+	if defs.is_empty():
+		return false
+	var target_index := -1
+	for i in defs.size():
+		if defs[i].id == def_id:
+			target_index = i
+			break
+	if target_index == -1:
+		return false
+	if active:
+		_exit()
+	_defs = defs
+	_num_was.resize(_defs.size())
+	_num_was.fill(false)
+	_index = target_index
+	active = true
+	_refresh_ghost()
+	return true

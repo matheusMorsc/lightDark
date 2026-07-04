@@ -92,8 +92,21 @@ debug).
 - Camadas de física: 1=world, 2=player, 3=enemies. Inimigos NÃO colidem com
   o player (dano é por distância) — nada de prensar o jogador em fila.
 - Cena principal: `world/biome_1.tscn` (região 1, a base — sempre viva).
-- Iluminação: addon Lit. Superfície ~65% de ambiente; runs 30% (escuras de
-  propósito — lanterna importa). Fundo preto via `default_clear_color`.
+- Iluminação: addon Lit. Superfície ~65% de ambiente; runs subiram para
+  ~56% e receberam mais pontos de luz na arena (tochas extras) para melhorar
+  leitura sem perder o clima escuro. Fundo preto via `default_clear_color`.
+- **Ciclo de dia/noite v1 (Sprint 1, jul/2026):** `WorldLayers` agora
+  controla um relógio global da superfície (**2 min por ciclo em modo de
+  teste**, persistido no save) e reaplica o `LitCanvasModulate` da região
+  ativa conforme a fase (`dia`, `entardecer`, `noite`, `amanhecer`). Runs
+  congelam o horário.
+- **Pressão noturna v1:** à noite, a superfície spawna inimigos extras ao
+  redor do jogador com buff mais agressivo de stats, em lotes e com cap
+  maior; perto da base existe uma zona segura onde novos spawns noturnos
+  não entram. Ao amanhecer, esses extras são removidos.
+- **Marcador da zona segura da base:** `world/base_safe_radius_marker.gd`
+  desenha um anel/círculo pulsante no chão da base, centrado em
+  `home_position`, para visualizar o alcance do efeito seguro noturno.
 
 ### Regiões (multi-região)
 - `WorldLayers` gerencia N regiões via `RegionDef` (.tres em
@@ -263,8 +276,7 @@ debug).
 ## Problemas conhecidos / em aberto
 1. **Verificar com a build atual** (correções entraram DEPOIS dos últimos
    screenshots): labels de portais sobrepostas (fix: só o mais próximo) e
-   run escura demais (ambiente 30% + fundo preto). Se continuar escuro
-   demais, subir `color` do `LitCanvasModulate` em `run_map.tscn` p/ ~0.45.
+   brilho geral das runs após ajuste de iluminação (~56% + tochas extras).
 2. **A pasta do projeto truncou gravações 3×** (test_biome, resource_node,
    dungeon_tileset — todos recuperados/regenerados): investigar
    OneDrive/antivírus em Downloads; mover o projeto pra fora de Downloads.
@@ -544,6 +556,48 @@ debug).
     elimina qualquer chance de o container reagir ao texto variável e
     esticar as barras junto. Ainda não confirmado se resolve de verdade
     (sem acesso pra rodar o jogo) — pedir pro usuário testar de novo.
+24. **Troca visual da barra de vida por imagens fornecidas pelo usuário**
+    (jul/2026): `ui/hud.tscn` migrou `HealthBar` de `ProgressBar` para
+    `TextureProgressBar`, com textura de fundo (vida vazia) e progresso
+    (vida cheia) via `AtlasTexture` recortado; depois recebeu ajuste fino
+    no recorte horizontal para eliminar o último espaço branco à direita;
+    `ui/hud.gd` tipou
+    `health_bar` como `Range` (continua compatível com update por `value`/
+    `max_value`). O texto numérico (`ValueLabel`) permaneceu por cima.
+25. **Redesign minimalista de Vida/Fome (sem arte final)**
+    (jul/2026, pedido do usuário em inglês): prioridade mudou de textura
+    para legibilidade/game feel. `ui/hud.tscn` foi reestruturado com
+    `VitalsCard` + `HealthMeter` + `HungerMeter` (painéis arredondados,
+    spacing e hierarquia), mantendo no mesmo HUD. `ui/hud.gd` preservou os
+    sinais atuais (`health_changed`/`hunger_changed`) e passou a aplicar:
+    interpolação suave via `Tween`, flash curto ao tomar dano, pulso em
+    vida baixa (<=25%) e aviso visual distinto de fome crítica (<=20%,
+    label + pulso). Implementação ficou parametrizada por `@export` para
+    tuning rápido sem mexer na lógica de gameplay.
+26. **HUD ainda mais limpa por hover de texto em Vida/Fome**
+    (jul/2026): rótulos e números das barras (`VIDA/FOME`, `atual / máximo`)
+    agora ficam ocultos por padrão e aparecem só no `mouse_entered` de cada
+    medidor (`HealthMeter`/`HungerMeter`). Mantém os mesmos sinais e lógica
+    de update, reduzindo ruído visual sem perder informação sob demanda.
+    Ajuste seguinte eliminou flick de hover trocando toggle de `visible` por
+    controle de opacidade (`modulate.a`) e `mouse_filter = IGNORE` nos labels.
+27. **Card de vitais colapsável com expansão no hover**
+    (jul/2026): para evitar a sensação de "área específica da borda", o
+    trigger passou a ser direto nas barras (`HealthBar`/`HungerBar`), e o
+    card inteiro anima entre dois tamanhos (`vitals_collapsed_height` /
+    `vitals_expanded_height`) com tween curto. Colapsado mostra só as barras;
+    expandido revela títulos e valores.
+28. **Sprint 1 do ciclo de dia/noite**
+    (jul/2026): `autoload/world_layers.gd` ganhou relógio global da
+    superfície (`_time_of_day_ratio`, 2 minutos por ciclo em teste), fases nomeadas
+    (`dia`, `entardecer`, `noite`, `amanhecer`), sinais públicos
+    (`day_phase_changed`, `time_of_day_changed`) e persistência via
+    `save_manager.gd`. O `LitCanvasModulate` de cada região usa sua cor-base
+    armazenada em meta e recebe um multiplicador de brilho por fase, sem
+    apagar a identidade própria da cena. Pressão inicial: à noite surgem
+    inimigos extras ao redor do jogador (`night_surface_enemy`) em lotes,
+    com buff mais forte e zona segura perto da base; amanhecer limpa esses
+    spawns.
 
 ## Próximos passos (ordem recomendada)
 1. ~~Função da Workbench~~ — **RESOLVIDO** (jul/2026, decisão do usuário:

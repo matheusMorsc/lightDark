@@ -13,7 +13,7 @@ script = ExtResource("1")
 
 [node name="LitCanvasModulate" type="Node2D" parent="."]
 script = ExtResource("2")
-color = Color(0.3, 0.3, 0.36, 1)
+color = Color(0.56, 0.56, 0.62, 1)
 
 [node name="FloorLayer" type="TileMapLayer" parent="."]
 material = SubResource("SM_run_map")

@@ -2,14 +2,22 @@ extends CanvasLayer
 ## HUD: barras de vida/fome, grade de inventário (drag-and-drop) e painel
 ## de crafting.
 
-@onready var health_bar: ProgressBar = $Control/VBoxContainer/HealthBar
-@onready var hunger_bar: ProgressBar = $Control/VBoxContainer/HungerBar
+@onready var health_bar: ProgressBar = $Control/VBoxContainer/VitalsCard/VitalsVBox/HealthMeter/VBox/HealthBar
+@onready var hunger_bar: ProgressBar = $Control/VBoxContainer/VitalsCard/VitalsVBox/HungerMeter/VBox/HungerBar
+@onready var vitals_card: PanelContainer = $Control/VBoxContainer/VitalsCard
+@onready var health_header: HBoxContainer = $Control/VBoxContainer/VitalsCard/VitalsVBox/HealthMeter/VBox/Header
+@onready var hunger_header: HBoxContainer = $Control/VBoxContainer/VitalsCard/VitalsVBox/HungerMeter/VBox/Header
+@onready var health_title_label: Label = $Control/VBoxContainer/VitalsCard/VitalsVBox/HealthMeter/VBox/Header/TitleLabel
+@onready var hunger_title_label: Label = $Control/VBoxContainer/VitalsCard/VitalsVBox/HungerMeter/VBox/Header/TitleLabel
 ## Número exato "atual / máximo" sobreposto na barra (registrado jul/2026,
 ## pedido do usuário pra facilitar ver o efeito do Amuleto Vital sem
 ## depender só da largura visual do preenchimento — 100→100 cheio e
 ## 150→150 cheio parecem IDÊNTICOS numa barra sem número).
-@onready var health_value_label: Label = $Control/VBoxContainer/HealthBar/ValueLabel
-@onready var hunger_value_label: Label = $Control/VBoxContainer/HungerBar/ValueLabel
+@onready var health_value_label: Label = $Control/VBoxContainer/VitalsCard/VitalsVBox/HealthMeter/VBox/Header/HealthValueLabel
+@onready var hunger_value_label: Label = $Control/VBoxContainer/VitalsCard/VitalsVBox/HungerMeter/VBox/Header/HungerValueLabel
+@onready var health_meter_panel: PanelContainer = $Control/VBoxContainer/VitalsCard/VitalsVBox/HealthMeter
+@onready var hunger_meter_panel: PanelContainer = $Control/VBoxContainer/VitalsCard/VitalsVBox/HungerMeter
+@onready var hunger_critical_label: Label = $Control/VBoxContainer/VitalsCard/VitalsVBox/HungerMeter/VBox/CriticalLabel
 @onready var slots_grid: GridContainer = $Control/InventoryPanel/VBox/SlotsGrid
 @onready var tutorial_panel: PanelContainer = $Control/TutorialPanel
 @onready var death_screen: Control = $Control/DeathScreen
@@ -80,6 +88,30 @@ var _upgrades_key_was_pressed: bool = false
 var _debug_panel: PanelContainer
 var _debug_key_was_pressed: bool = false
 
+@export var bar_lerp_duration: float = 0.22
+@export var damage_flash_duration: float = 0.18
+@export var low_health_threshold_ratio: float = 0.25
+@export var low_health_pulse_duration: float = 0.55
+@export var hunger_critical_threshold_ratio: float = 0.2
+@export var hunger_warning_pulse_duration: float = 0.42
+@export var tool_label_width: float = 264.0
+@export_range(0.0, 1.0, 0.01) var vitals_text_hidden_alpha: float = 0.0
+@export var vitals_collapsed_height: float = 66.0
+@export var vitals_expanded_height: float = 112.0
+@export var vitals_expand_duration: float = 0.14
+
+var _health_display_value: float = 0.0
+var _hunger_display_value: float = 0.0
+var _health_target_value: float = 0.0
+var _hunger_target_value: float = 0.0
+var _health_value_tween: Tween
+var _hunger_value_tween: Tween
+var _health_damage_flash_tween: Tween
+var _health_low_pulse_tween: Tween
+var _hunger_critical_tween: Tween
+var _vitals_expand_tween: Tween
+var _vitals_is_expanded: bool = false
+
 ## Painel do modo construção (B): lista TODAS as estruturas disponíveis
 ## agora, numeradas — antes disso o único feedback era o hint flutuante
 ## preso no ghost, que só muda de texto quando você já aperta um número.
@@ -120,9 +152,16 @@ func _ready() -> void:
 	_build_recipe_rows()
 	_setup_hotbar()
 	_build_pause_menu()
+	_setup_vitals_hover_text()
 
-	_on_health_changed(GameState.health, GameState.max_health)
-	_on_hunger_changed(GameState.hunger, GameState.max_hunger)
+	_health_display_value = GameState.health
+	_hunger_display_value = GameState.hunger
+	_health_target_value = GameState.health
+	_hunger_target_value = GameState.hunger
+	_apply_resource_value(health_bar, health_value_label, _health_display_value, GameState.max_health)
+	_apply_resource_value(hunger_bar, hunger_value_label, _hunger_display_value, GameState.max_hunger)
+	_update_low_health_warning(GameState.health, GameState.max_health)
+	_update_hunger_warning(GameState.hunger, GameState.max_hunger)
 	_update_inventory()
 
 	# O painel de tutorial não aparece mais sozinho no boot (some depois de
@@ -137,9 +176,9 @@ func _ready() -> void:
 	# barras, e o texto muda de tamanho a cada troca de ferramenta ("—
 	# selecione na hotbar" vs "Espada da Forja") — sem um tamanho travado,
 	# corria o risco de influenciar o layout do container. Largura igual à
-	# das barras (200px) pra ficar tudo alinhado.
+	# do card de status (264px) pra ficar tudo alinhado.
 	_tool_label = Label.new()
-	_tool_label.custom_minimum_size = Vector2(200, 20)
+	_tool_label.custom_minimum_size = Vector2(tool_label_width, 20)
 	_tool_label.clip_text = true
 	_tool_label.size_flags_horizontal = 0
 	$Control/VBoxContainer.add_child(_tool_label)
@@ -151,6 +190,7 @@ func _ready() -> void:
 	ObjectiveTracker.progress_changed.connect(_on_objective_progress)
 	ObjectiveTracker.biome_unlocked.connect(_on_biome_unlocked)
 	WorldLayers.run_modifier_rolled.connect(_on_run_modifier_rolled)
+	WorldLayers.day_phase_changed.connect(_on_day_phase_changed)
 	GameState.potion_applied.connect(_on_potion_applied)
 	GameState.potion_expired.connect(_on_potion_expired)
 	GameState.passive_bonus_changed.connect(_on_passive_bonus_changed)
@@ -161,6 +201,42 @@ func _ready() -> void:
 
 	if OS.is_debug_build():
 		_build_debug_panel()
+
+func _setup_vitals_hover_text() -> void:
+	_set_vitals_expanded(false, true)
+	health_bar.mouse_entered.connect(func() -> void: _set_vitals_expanded(true))
+	hunger_bar.mouse_entered.connect(func() -> void: _set_vitals_expanded(true))
+	vitals_card.mouse_exited.connect(func() -> void: _set_vitals_expanded(false))
+
+func _set_health_text_visible(visible: bool) -> void:
+	var alpha := 1.0 if visible else vitals_text_hidden_alpha
+	health_title_label.modulate.a = alpha
+	health_value_label.modulate.a = alpha
+
+func _set_hunger_text_visible(visible: bool) -> void:
+	var alpha := 1.0 if visible else vitals_text_hidden_alpha
+	hunger_title_label.modulate.a = alpha
+	hunger_value_label.modulate.a = alpha
+
+func _set_vitals_expanded(expanded: bool, instant: bool = false) -> void:
+	if expanded == _vitals_is_expanded and not instant:
+		return
+	_vitals_is_expanded = expanded
+	health_header.visible = expanded
+	hunger_header.visible = expanded
+	_set_health_text_visible(expanded)
+	_set_hunger_text_visible(expanded)
+
+	var target := Vector2(vitals_card.custom_minimum_size.x, vitals_expanded_height if expanded else vitals_collapsed_height)
+	if _vitals_expand_tween:
+		_vitals_expand_tween.kill()
+	if instant:
+		vitals_card.custom_minimum_size = target
+		return
+	_vitals_expand_tween = create_tween()
+	_vitals_expand_tween.set_trans(Tween.TRANS_CUBIC)
+	_vitals_expand_tween.set_ease(Tween.EASE_OUT)
+	_vitals_expand_tween.tween_property(vitals_card, "custom_minimum_size", target, vitals_expand_duration)
 
 func _process(_delta: float) -> void:
 	# ESC tem prioridade em cadeia: fecha pause > fecha craft > sai do modo
@@ -1014,6 +1090,15 @@ func _on_biome_unlocked(biome: int) -> void:
 func _on_run_modifier_rolled(mod: RunModifierDef) -> void:
 	_show_toast("Modificador da run: %s\n%s" % [mod.display_name, mod.description], 26)
 
+func _on_day_phase_changed(phase: String) -> void:
+	match phase:
+		"entardecer":
+			_show_toast("O sol esta baixando...", 22)
+		"noite":
+			_show_toast("Anoiteceu. Ficar longe da base ficou mais perigoso.", 22)
+		"amanhecer":
+			_show_toast("O amanhecer trouxe um pouco de calma.", 22)
+
 ## Poções da Mesa de Alquimia (registrado jul/2026, ver GameState.
 ## apply_potion): toast ao beber e ao expirar, mesmo padrão do aviso de
 ## bioma desbloqueado — feedback claro de "o buff começou/acabou" sem
@@ -1049,13 +1134,134 @@ func _on_tool_equipped(item_id: String) -> void:
 
 func _on_health_changed(current: float, max_value: float) -> void:
 	health_bar.max_value = max_value
-	health_bar.value = current
-	health_value_label.text = "%d / %d" % [int(round(current)), int(round(max_value))]
+	if _health_value_tween:
+		_health_value_tween.kill()
+	var took_damage := current < _health_target_value - 0.01
+	_health_target_value = current
+	_health_value_tween = _animate_resource_value(
+		health_bar,
+		health_value_label,
+		_health_display_value,
+		current,
+		max_value,
+		func(v: float) -> void:
+			_health_display_value = v
+	)
+	_update_low_health_warning(current, max_value)
+	if took_damage:
+		_trigger_health_damage_flash()
 
 func _on_hunger_changed(current: float, max_value: float) -> void:
 	hunger_bar.max_value = max_value
-	hunger_bar.value = current
-	hunger_value_label.text = "%d / %d" % [int(round(current)), int(round(max_value))]
+	if _hunger_value_tween:
+		_hunger_value_tween.kill()
+	_hunger_target_value = current
+	_hunger_value_tween = _animate_resource_value(
+		hunger_bar,
+		hunger_value_label,
+		_hunger_display_value,
+		current,
+		max_value,
+		func(v: float) -> void:
+			_hunger_display_value = v
+	)
+	_update_hunger_warning(current, max_value)
+
+func _animate_resource_value(
+	bar: Range,
+	value_label: Label,
+	current_display: float,
+	target_value: float,
+	max_value: float,
+	set_display_value: Callable
+) -> Tween:
+	if is_equal_approx(current_display, target_value):
+		set_display_value.call(target_value)
+		_apply_resource_value(bar, value_label, target_value, max_value)
+		return null
+
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_OUT)
+	var on_step := func(v: float) -> void:
+		set_display_value.call(v)
+		_apply_resource_value(bar, value_label, v, max_value)
+	tween.tween_method(
+		on_step,
+		current_display,
+		target_value,
+		bar_lerp_duration
+	)
+	return tween
+
+func _apply_resource_value(bar: Range, value_label: Label, current: float, max_value: float) -> void:
+	var clamped_current := clampf(current, 0.0, max_value)
+	bar.max_value = max_value
+	bar.value = clamped_current
+	value_label.text = "%d / %d" % [int(round(clamped_current)), int(round(max_value))]
+
+func _trigger_health_damage_flash() -> void:
+	if _health_damage_flash_tween:
+		_health_damage_flash_tween.kill()
+	health_meter_panel.self_modulate = Color(1, 1, 1, 1)
+	_health_damage_flash_tween = create_tween()
+	_health_damage_flash_tween.tween_property(
+		health_meter_panel,
+		"self_modulate",
+		Color(1.25, 0.7, 0.7, 1),
+		damage_flash_duration * 0.45
+	)
+	_health_damage_flash_tween.tween_property(
+		health_meter_panel,
+		"self_modulate",
+		Color(1, 1, 1, 1),
+		damage_flash_duration * 0.55
+	)
+
+func _update_low_health_warning(current: float, max_value: float) -> void:
+	var is_low := max_value > 0.0 and (current / max_value) <= low_health_threshold_ratio
+	if is_low:
+		if _health_low_pulse_tween == null:
+			health_bar.self_modulate = Color(1, 1, 1, 1)
+			health_value_label.self_modulate = Color(1, 1, 1, 1)
+			_health_low_pulse_tween = create_tween().set_loops()
+			_health_low_pulse_tween.set_trans(Tween.TRANS_SINE)
+			_health_low_pulse_tween.set_ease(Tween.EASE_IN_OUT)
+			_health_low_pulse_tween.tween_property(health_bar, "self_modulate", Color(1.2, 0.82, 0.82, 1), low_health_pulse_duration * 0.5)
+			_health_low_pulse_tween.parallel().tween_property(health_value_label, "self_modulate", Color(1.2, 0.82, 0.82, 1), low_health_pulse_duration * 0.5)
+			_health_low_pulse_tween.tween_property(health_bar, "self_modulate", Color(1, 1, 1, 1), low_health_pulse_duration * 0.5)
+			_health_low_pulse_tween.parallel().tween_property(health_value_label, "self_modulate", Color(1, 1, 1, 1), low_health_pulse_duration * 0.5)
+	else:
+		if _health_low_pulse_tween:
+			_health_low_pulse_tween.kill()
+			_health_low_pulse_tween = null
+		health_bar.self_modulate = Color(1, 1, 1, 1)
+		health_value_label.self_modulate = Color(1, 1, 1, 1)
+
+func _update_hunger_warning(current: float, max_value: float) -> void:
+	var is_critical := max_value > 0.0 and (current / max_value) <= hunger_critical_threshold_ratio
+	hunger_critical_label.visible = is_critical
+	if is_critical:
+		if _hunger_critical_tween == null:
+			hunger_meter_panel.self_modulate = Color(1, 1, 1, 1)
+			hunger_bar.self_modulate = Color(1, 1, 1, 1)
+			hunger_critical_label.self_modulate = Color(1, 1, 1, 0.9)
+			_hunger_critical_tween = create_tween().set_loops()
+			_hunger_critical_tween.set_trans(Tween.TRANS_SINE)
+			_hunger_critical_tween.set_ease(Tween.EASE_IN_OUT)
+			_hunger_critical_tween.tween_property(hunger_meter_panel, "self_modulate", Color(1.15, 0.9, 0.75, 1), hunger_warning_pulse_duration * 0.5)
+			_hunger_critical_tween.parallel().tween_property(hunger_bar, "self_modulate", Color(1.1, 0.9, 0.65, 1), hunger_warning_pulse_duration * 0.5)
+			_hunger_critical_tween.parallel().tween_property(hunger_critical_label, "self_modulate", Color(1, 1, 1, 0.25), hunger_warning_pulse_duration * 0.5)
+			_hunger_critical_tween.tween_property(hunger_meter_panel, "self_modulate", Color(1, 1, 1, 1), hunger_warning_pulse_duration * 0.5)
+			_hunger_critical_tween.parallel().tween_property(hunger_bar, "self_modulate", Color(1, 1, 1, 1), hunger_warning_pulse_duration * 0.5)
+			_hunger_critical_tween.parallel().tween_property(hunger_critical_label, "self_modulate", Color(1, 1, 1, 1), hunger_warning_pulse_duration * 0.5)
+	else:
+		if _hunger_critical_tween:
+			_hunger_critical_tween.kill()
+			_hunger_critical_tween = null
+		hunger_meter_panel.self_modulate = Color(1, 1, 1, 1)
+		hunger_bar.self_modulate = Color(1, 1, 1, 1)
+		hunger_critical_label.self_modulate = Color(1, 1, 1, 1)
 
 ## Abre o painel do baú (chamado por chest.gd via call_group("hud", ...)):
 ## liga cada slot da grade ao inventário DESSE baú e desenha o conteúdo.

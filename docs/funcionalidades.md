@@ -496,6 +496,27 @@
   qualquer outra morte — antes disso não acontecia (bug latente corrigido
   junto com esta feature: o teleporte pós-morte não levava em conta a
   região ativa).
+- **Sprint 1 do ciclo de dia/noite** (registrado jul/2026): `WorldLayers`
+  agora roda um relógio global só na superfície (runs congelam o horário).
+  O ciclo completo está configurado em **2 minutos para teste** e passa por
+  **dia → entardecer → noite → amanhecer**. O horário atual persiste no save
+  (`SaveManager` grava `time_of_day_ratio`).
+- **Ambiente da superfície responde ao horário**: o `LitCanvasModulate` da
+  região ativa usa a cor-base da cena como referência e aplica um fator de
+  brilho conforme a fase do ciclo (dia fica levemente mais claro que o
+  padrão da cena, entardecer cai forte, noite escurece bastante e
+  amanhecer clareia de volta). Isso vale pra base e também pra região 2,
+  sem apagar a identidade visual própria de cada cena.
+- **Pressão noturna v1**: durante a noite, a superfície começa a gerar
+  inimigos extras em lotes ao redor do jogador (`night_surface_enemy`) com
+  aumento perceptível de velocidade, vida, dano e raio de detecção.
+  Perto da base existe uma zona segura (`BASE_SAFE_RADIUS`) que barra novos
+  spawns, reforçando a ideia de voltar antes de escurecer. Ao sair da
+  noite, esses inimigos extras somem.
+- **Marcador da zona segura da base** (registrado jul/2026, foco em teste):
+  a base agora mostra um círculo pulsante fraco no chão indicando até onde
+  vai o raio seguro contra spawn noturno. Serve para calibrar o sistema de
+  pressão antes de decidir se esse indicador fica permanente ou vira debug.
 
 ## Baú de armazenamento
 
@@ -654,9 +675,10 @@
 - Migração completa pra perspectiva Don't Starve-like: origem dos nós nos
   pés, colisores = pegada da base, sombra de contato, occluder na base,
   Y-sort em toda cena.
-- Addon Lit: superfície com ~65% de luz ambiente; runs com 30% (escuras de
-  propósito — a lanterna importa de verdade lá dentro); fundo preto fora
-  da área iluminada.
+- Addon Lit: superfície com ~65% de luz ambiente; runs agora com ambiente
+  mais alto (~56%) para melhorar leitura de combate nas salas. A arena de
+  run também ganhou mais tochas fixas (cantos + laterais), mantendo o clima
+  escuro sem sacrificar visibilidade. Fundo preto fora da área iluminada.
 - Lanterna craftável aumenta força e alcance da luz pessoal (fraca sem
   ela, forte com ela no inventário).
 
@@ -684,6 +706,27 @@
   visualmente IDÊNTICOS — a barra sempre cheia, só a escala mudando por
   baixo — o que tornava difícil confirmar se o bônus passivo estava
   ativo só de olhar.
+- **Redesign do bloco de status (Vida/Fome) focado em legibilidade**
+  (registrado jul/2026, pedido do usuário): HUD voltou para barras
+  minimalistas (`ProgressBar`) sem arte final e ganhou hierarquia clara:
+  card de status com painéis arredondados, Vida como recurso primário
+  (barra maior/mais destacada) e Fome como secundário. O update de valor
+  continua vindo dos mesmos sinais (`GameState.health_changed` /
+  `GameState.hunger_changed`), mas agora com interpolação suave por `Tween`
+  em vez de salto instantâneo.
+- **Feedback visual contextual nas barras** (registrado jul/2026): Vida dá
+  flash curto ao tomar dano e entra em pulso quando cai para <=25%; Fome
+  mostra aviso específico de crítico (label "FOME CRÍTICA" + pulso visual)
+  quando fica <=20%.
+- **Textos de Vida/Fome sob demanda** (registrado jul/2026): os rótulos
+  ("VIDA"/"FOME") e números `"atual / máximo"` ficam ocultos por padrão e
+  aparecem ao passar o mouse sobre cada medidor, deixando a HUD mais limpa
+  durante exploração/combate. Ajuste posterior removeu flick de hover:
+  texto continua no layout e só muda opacidade (sem toggle de `visible`).
+- **Expansão de barras no hover** (registrado jul/2026): card de status
+  começa colapsado (mostra só as barras); ao passar o mouse em uma barra, o
+  card expande com tween curto e revela cabeçalhos + números. Ao sair da
+  área do card, ele colapsa de novo.
 - Pause (ESC): volume persistido entre sessões, continuar, **Controles**
   (mostra a lista de teclas — mesmo texto que antes só aparecia ~6s no
   boot com fade; agora fica sempre acessível aqui, e o boot não mostra

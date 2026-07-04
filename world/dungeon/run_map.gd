@@ -115,8 +115,13 @@ func _generate() -> void:
 		_spawn(PROPS[_rng.randi() % PROPS.size()], _rand_cell(_rng, _arena_rect))
 	for _i in _rng.randi_range(ore_min, ore_max):
 		_spawn(ORE, _rand_cell(_rng, _arena_rect))
+	# Mais pontos de luz na arena para melhorar leitura de combate no meio/fundo da sala.
 	_spawn(TORCH, _cell_pos(Vector2i(_arena_rect.position.x + 2, _arena_rect.position.y + 2)))
 	_spawn(TORCH, _cell_pos(Vector2i(_arena_rect.end.x - 3, _arena_rect.position.y + 2)))
+	_spawn(TORCH, _cell_pos(Vector2i(_arena_rect.position.x + 2, _arena_rect.end.y - 3)))
+	_spawn(TORCH, _cell_pos(Vector2i(_arena_rect.end.x - 3, _arena_rect.end.y - 3)))
+	_spawn(TORCH, _cell_pos(Vector2i(_arena_rect.position.x + 2, center.y)))
+	_spawn(TORCH, _cell_pos(Vector2i(_arena_rect.end.x - 3, center.y)))
 
 	# 5) Encontro: mapa de boss segue no ciclo, mapa comum usa levas até 25–30.
 	var boss_map := map_index % BOSS_EVERY == 0

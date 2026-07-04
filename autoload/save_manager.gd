@@ -91,6 +91,7 @@ func save_game() -> void:
 		"health": GameState.health,
 		"max_health": GameState.max_health,
 		"hunger": GameState.hunger,
+		"time_of_day_ratio": WorldLayers.get_time_of_day_ratio(),
 		"equipped_tool_id": GameState.equipped_tool_id,
 		"inventory": inv,
 		"player_pos": [pos.x, pos.y],
@@ -138,6 +139,7 @@ func load_game() -> void:
 	GameState._silent_passive_recompute = false
 	GameState.health = clampf(float(data.get("health", GameState.max_health)), 1.0, GameState.max_health)
 	GameState.hunger = clampf(float(data.get("hunger", GameState.max_hunger)), 0.0, GameState.max_hunger)
+	WorldLayers.set_time_of_day_ratio(float(data.get("time_of_day_ratio", WorldLayers.get_time_of_day_ratio())))
 	GameState.health_changed.emit(GameState.health, GameState.max_health)
 	GameState.hunger_changed.emit(GameState.hunger, GameState.max_hunger)
 	ObjectiveTracker.from_dict(data.get("objectives", {}))

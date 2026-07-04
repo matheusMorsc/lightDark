@@ -30,6 +30,9 @@ extends Node
 ## A base nunca é afetada.
 
 const MAP_SCENE := preload("res://world/dungeon/run_map.tscn")
+const BASE_SAFE_RADIUS_MARKER_SCRIPT := preload("res://world/base_safe_radius_marker.gd")
+const SURFACE_ENEMY := preload("res://entities/enemy.tscn")
+const SURFACE_ENEMY_FAST := preload("res://entities/enemy_fast.tscn")
 ## Offset espacial da run: mantém os colisores da superfície (que continuam
 ## no espaço físico mesmo com o nó escondido) longe do player. Bem afastado
 ## de qualquer offset de região (ver REGIONS_DIR) pra nunca colidir.
@@ -37,9 +40,28 @@ const RUN_OFFSET := Vector2(0, 1000000)
 const REGIONS_DIR := "res://world/regions"
 const MODIFIERS_DIR := "res://world/dungeon/modifiers"
 
+const DAY_NIGHT_CYCLE_SECONDS := 120.0
+const DAY_END := 0.50
+const DUSK_END := 0.65
+const NIGHT_END := 0.90
+const DAY_AMBIENT_SCALE := 1.12
+const NIGHT_AMBIENT_SCALE := 0.32
+const DUSK_AMBIENT_SCALE := 0.58
+const NIGHT_SPAWN_INTERVAL := 4.0
+const NIGHT_ENEMY_CAP := 12
+const NIGHT_SPAWN_BATCH := 2
+const NIGHT_SPAWN_MIN_DISTANCE := 260.0
+const NIGHT_SPAWN_MAX_DISTANCE := 420.0
+const BASE_SAFE_RADIUS := 420.0
+const NIGHT_ENEMY_GROUP := "night_surface_enemy"
+const BASE_SAFE_RADIUS_MARKER_NAME := "BaseSafeRadiusMarker"
+const NIGHT_SCENE_POOL: Array[PackedScene] = [SURFACE_ENEMY, SURFACE_ENEMY_FAST]
+
 ## Emitido quando uma run começa com o modificador sorteado (ver
 ## RunModifierDef) — hud.gd escuta pra mostrar o toast de anúncio.
 signal run_modifier_rolled(mod: RunModifierDef)
+signal day_phase_changed(phase: String)
+signal time_of_day_changed(time_ratio: float)
 
 var in_run: bool = false
 ## Quantos mapas o jogador já entrou nesta run (1 = primeiro). Escala o risco.
@@ -67,6 +89,9 @@ var _region_roots: Dictionary = {}  # int -> Node2D
 ## pra base — "maldição do dia" estilo roguelite, ver RunModifierDef.
 var active_modifier: RunModifierDef = null
 var _modifier_pool: Array[RunModifierDef] = []
+var _time_of_day_ratio: float = 0.22
+var _day_phase: String = "dia"
+var _night_spawn_cooldown: float = NIGHT_SPAWN_INTERVAL
 
 var _map: Node2D = null
 var _return_position := Vector2.ZERO
@@ -87,6 +112,14 @@ func _ready() -> void:
 	_fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_fade_rect)
 	_fade_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_ensure_base_safe_radius_marker()
+	_apply_surface_cycle_to_root(_base_root())
+
+func _process(delta: float) -> void:
+	if in_run:
+		return
+	_advance_day_night(delta)
+	_update_surface_night_pressure(delta)
 
 func _load_region_defs() -> void:
 	var dir := DirAccess.open(REGIONS_DIR)
@@ -139,10 +172,26 @@ func get_heal_effectiveness_mult() -> float:
 func get_ore_yield_mult() -> float:
 	return active_modifier.ore_yield_mult if active_modifier else 1.0
 
+func get_time_of_day_ratio() -> float:
+	return _time_of_day_ratio
+
+func set_time_of_day_ratio(value: float) -> void:
+	_time_of_day_ratio = wrapf(value, 0.0, 1.0)
+	_update_day_phase(true)
+	_apply_surface_cycle_to_root(_active_root())
+	_apply_surface_cycle_to_root(_base_root())
+
+func get_day_phase() -> String:
+	return _day_phase
+
+func is_night_phase() -> bool:
+	return _day_phase == "noite"
+
 func _capture_home() -> void:
 	var p := _get_player()
 	if p:
 		home_position = p.global_position
+		_update_base_safe_radius_marker()
 
 ## Fade preto rápido cobrindo a troca de camada (esconde o teleporte,
 ## o reparent e o snap da câmera).
@@ -178,10 +227,128 @@ func _active_root() -> Node2D:
 ## sendo a região que a gente acabou de esconder. Seguro chamar sempre,
 ## mesmo em raiz recém-instanciada (só reafirma o valor já correto).
 func _reapply_ambient(root: Node2D) -> void:
-	for m in get_tree().get_nodes_in_group("lit_canvas_modulate"):
-		if root.is_ancestor_of(m):
-			m.color = m.color  # o setter republica os globals
+	_apply_surface_cycle_to_root(root)
+
+func _advance_day_night(delta: float) -> void:
+	_time_of_day_ratio = wrapf(_time_of_day_ratio + delta / DAY_NIGHT_CYCLE_SECONDS, 0.0, 1.0)
+	_update_day_phase()
+	_apply_surface_cycle_to_root(_active_root())
+	_apply_surface_cycle_to_root(_base_root())
+	time_of_day_changed.emit(_time_of_day_ratio)
+
+func _update_day_phase(force_emit: bool = false) -> void:
+	var previous := _day_phase
+	if _time_of_day_ratio < DAY_END:
+		_day_phase = "dia"
+	elif _time_of_day_ratio < DUSK_END:
+		_day_phase = "entardecer"
+	elif _time_of_day_ratio < NIGHT_END:
+		_day_phase = "noite"
+	else:
+		_day_phase = "amanhecer"
+	if force_emit or _day_phase != previous:
+		if previous == "noite" and _day_phase != "noite":
+			_clear_night_surface_enemies()
+		day_phase_changed.emit(_day_phase)
+
+func _apply_surface_cycle_to_root(root: Node2D) -> void:
+	if root == null:
+		return
+	var canvas_modulate := root.get_node_or_null("LitCanvasModulate")
+	if canvas_modulate == null:
+		return
+	var base_color: Color = canvas_modulate.get_meta("day_cycle_base_color", Color(0, 0, 0, 0))
+	if base_color.a == 0.0:
+		base_color = canvas_modulate.get("color")
+		canvas_modulate.set_meta("day_cycle_base_color", base_color)
+	var scale := _current_ambient_scale()
+	var applied := Color(base_color.r * scale, base_color.g * scale, base_color.b * scale, base_color.a)
+	canvas_modulate.set("color", applied)
+
+func _current_ambient_scale() -> float:
+	if _time_of_day_ratio < DAY_END:
+		return DAY_AMBIENT_SCALE
+	if _time_of_day_ratio < DUSK_END:
+		var dusk_t := inverse_lerp(DAY_END, DUSK_END, _time_of_day_ratio)
+		return lerpf(DAY_AMBIENT_SCALE, DUSK_AMBIENT_SCALE, dusk_t)
+	if _time_of_day_ratio < NIGHT_END:
+		var night_t := inverse_lerp(DUSK_END, NIGHT_END, _time_of_day_ratio)
+		return lerpf(DUSK_AMBIENT_SCALE, NIGHT_AMBIENT_SCALE, night_t)
+	var dawn_t := inverse_lerp(NIGHT_END, 1.0, _time_of_day_ratio)
+	return lerpf(NIGHT_AMBIENT_SCALE, DAY_AMBIENT_SCALE, dawn_t)
+
+func _update_surface_night_pressure(delta: float) -> void:
+	if _day_phase != "noite":
+		_night_spawn_cooldown = NIGHT_SPAWN_INTERVAL
+		return
+	var root := _active_root()
+	var player := _get_player()
+	if root == null or player == null:
+		return
+	if current_region_id == 1 and player.global_position.distance_to(home_position) <= BASE_SAFE_RADIUS:
+		_night_spawn_cooldown = NIGHT_SPAWN_INTERVAL
+		return
+	if _count_night_surface_enemies(root) >= NIGHT_ENEMY_CAP:
+		return
+	_night_spawn_cooldown -= delta
+	if _night_spawn_cooldown > 0.0:
+		return
+	_night_spawn_cooldown = NIGHT_SPAWN_INTERVAL
+	for _i in range(NIGHT_SPAWN_BATCH):
+		if _count_night_surface_enemies(root) >= NIGHT_ENEMY_CAP:
 			break
+		_spawn_night_surface_enemy(root, player.global_position)
+
+func _count_night_surface_enemies(root: Node2D) -> int:
+	var count := 0
+	for enemy in get_tree().get_nodes_in_group(NIGHT_ENEMY_GROUP):
+		if root.is_ancestor_of(enemy):
+			count += 1
+	return count
+
+func _spawn_night_surface_enemy(root: Node2D, around: Vector2) -> void:
+	var entities := root.get_node_or_null("Entities") as Node2D
+	if entities == null:
+		return
+	for _attempt in range(12):
+		var angle := randf() * TAU
+		var distance := randf_range(NIGHT_SPAWN_MIN_DISTANCE, NIGHT_SPAWN_MAX_DISTANCE)
+		var pos := around + Vector2.RIGHT.rotated(angle) * distance
+		if current_region_id == 1 and pos.distance_to(home_position) <= BASE_SAFE_RADIUS:
+			continue
+		var enemy = NIGHT_SCENE_POOL[randi() % NIGHT_SCENE_POOL.size()].instantiate()
+		enemy.global_position = pos
+		enemy.set("speed", float(enemy.get("speed")) * 1.35)
+		enemy.set("max_health", float(enemy.get("max_health")) * 1.4)
+		enemy.set("contact_damage", float(enemy.get("contact_damage")) * 1.3)
+		enemy.set("detection_radius", float(enemy.get("detection_radius")) * 1.3)
+		enemy.set("base_modulate", Color(0.78, 0.84, 1.0, 1.0))
+		entities.add_child(enemy)
+		enemy.add_to_group(NIGHT_ENEMY_GROUP)
+		return
+
+func _clear_night_surface_enemies() -> void:
+	for enemy in get_tree().get_nodes_in_group(NIGHT_ENEMY_GROUP):
+		enemy.queue_free()
+
+func _ensure_base_safe_radius_marker() -> void:
+	var base := _base_root()
+	if base == null or base.get_node_or_null(BASE_SAFE_RADIUS_MARKER_NAME) != null:
+		return
+	var marker := Node2D.new()
+	marker.name = BASE_SAFE_RADIUS_MARKER_NAME
+	marker.set_script(BASE_SAFE_RADIUS_MARKER_SCRIPT)
+	marker.set("radius", BASE_SAFE_RADIUS)
+	base.add_child(marker)
+	_update_base_safe_radius_marker()
+
+func _update_base_safe_radius_marker() -> void:
+	var base := _base_root()
+	if base == null:
+		return
+	var marker := base.get_node_or_null(BASE_SAFE_RADIUS_MARKER_NAME) as Node2D
+	if marker:
+		marker.global_position = home_position
 
 ## Inicia uma run nova a partir da base (com fade). Chamado pelo talismã
 ## (entities/structures/talisman.gd) — não existe mais tecla global pra

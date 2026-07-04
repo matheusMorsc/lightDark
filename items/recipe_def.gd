@@ -38,3 +38,9 @@ extends Resource
 ## Duração em segundos. Beber a mesma poção de novo RENOVA o tempo (não
 ## empilha o multiplicador).
 @export var potion_duration: float = 0.0
+
+@export_group("Construção via Craft")
+## "" = receita normal (item/efeito). Se preenchido, o craft do HUD (C)
+## constrói diretamente a StructureDef desse id perto do jogador, em vez de
+## só entregar item no inventário.
+@export var build_structure_id: String = ""

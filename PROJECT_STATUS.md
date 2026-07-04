@@ -78,9 +78,10 @@ debug).
   (Machado, Picareta) continuam craftáveis em qualquer lugar pelo painel
   de craft (C) — isso não muda. Só a CONSTRUÇÃO das estações avançadas
   (Forja, Mesa de Alquimia, Mesa de Pesquisa) exige estar perto de uma
-  Workbench já erguida; a Workbench em si não exige nada além do upgrade
-  comprado. Decisão do usuário, resolve a ambiguidade que estava em aberto
-  desde a sessão anterior.
+  Workbench já erguida; Baú Grande e Poste de Luz seguem o mesmo gating,
+  mas entram pelo E da Workbench (não no B geral). A Workbench em si não
+  exige nada além do upgrade comprado. Decisão do usuário, resolve a
+  ambiguidade que estava em aberto desde a sessão anterior.
 
 ## Sistemas implementados
 
@@ -125,6 +126,9 @@ debug).
 - **Receitas data-driven**: `RecipeDef` (.tres em `items/recipes/`); o painel
   de craft do HUD se monta sozinho. Lanterna (luz pessoal forte só com o
   item), Refeição (comida consumível), Amuleto Vital (3 essências → +25 HP).
+  `RecipeDef` agora também suporta construção direta via C
+  (`build_structure_id`): primeira receita usando isso é o **Portal de
+  Atalho** (8 essência).
 - **Tier II como upgrade + Estações com função (registrado jul/2026)**:
   Machado II/Picareta II agora CONSOMEM a ferramenta Tier I (não são mais
   itens soltos e redundantes) e só craftam perto de uma Forja
@@ -133,9 +137,8 @@ debug).
   jogador). Primeira arma pura do jogo: **Espada da Forja**
   (`ItemDef.weapon_damage_bonus = 15`, aplicado em `player.gd::_attack()`
   via `_equipped_weapon_bonus()`) — machado/picareta nunca deram dano de
-  combate, isso é novo. Sem ícone ainda (placeholder). Primeiro passo de um
-  plano maior: dar função própria às 4 estações (Workbench, Alquimia e
-  Pesquisa ainda faltam).
+  combate, isso é novo. Sem ícone ainda (placeholder). Hoje as 4 estações
+  já têm função própria (incluindo Workbench com fluxo de construção via E).
 - **Construção (B)**: `BuildMode` autoload + `StructureDef` (.tres em
   `items/structures/`): cerca, fogueira, tocha, **baú**, **talismã**,
   **Workbench, Forja, Mesa de Alquimia, Mesa de Pesquisa**. Ghost com
@@ -154,6 +157,13 @@ debug).
   portais de run), UI de transferência por drag-and-drop entre baú e
   hotbar (`ui/inventory_slot.gd` generalizado pra "dono" do slot — jogador
   ou baú). Conteúdo persiste no save (grupo `chests`).
+- **Portal de Atalho (protótipo inicial)** (`entities/structures/portal_atalho.gd`,
+  `items/recipes/portal_atalho.tres`, `items/structures/9c_portal_atalho.tres`):
+  criado pelo Crafting (C) com custo de essência e construído direto perto do
+  jogador (sem fluxo B). Com dois portais na base, F teleporta entre eles
+  (regra "só o mais próximo responde" + cooldown curto pra evitar retorno
+  imediato). Persistido pelo SaveManager como qualquer estrutura construída
+  (`player_built` + `structure_id`).
 
 ### Inimigos
 - 4 identidades (`entities/enemy.gd` único, comportamento por export):
@@ -176,11 +186,12 @@ debug).
 - `WorldLayers` autoload: superfície escondida/desabilitada durante a run;
   mapa gerado a 100k px de offset; fade preto em toda transição;
   `start_run()`/`end_run()` chamados pelo talismã/portal de saída/morte.
-- `world/dungeon/run_map.gd`: drunkard-walk de salas + corredores em L,
-  paredes com colisão via tiles, **trilha de tiles claros** do spawn até a
-  sala final, zona segura de spawn (190px), conteúdo escalado por
-  `map_index` e pelo **viés** escolhido no portal anterior (minério/combate/
-  suprimentos). Elites avermelhados no viés de combate.
+- `world/dungeon/run_map.gd`: formato de **arena/sala única** por mapa
+  (sem corredores). Mapas normais usam encontro por ondas: começa em 3–5
+  inimigos e continua spawnando novas levas até total de 25–30; só então
+  surgem os portais de escolha. Mantém zona segura de spawn (190px),
+  escala por `map_index` e viés do portal anterior (minério/combate/
+  suprimentos), com elites/afixos no viés de combate.
 - **Run Modifiers** (registrado jul/2026, `RunModifierDef` .tres em
   `world/dungeon/modifiers/`): `WorldLayers` sorteia UM por run inteira em
   `_do_start_run()` (toast de anúncio via `run_modifier_rolled`), limpo em
@@ -198,8 +209,8 @@ debug).
   NUNCA é apagado por morte.
 - **Props do dungeon são quebráveis** (`entities/dungeon/breakable_prop.gd`,
   anexado a crate_a/b, barrel, pot, rocks_a, sack): 1 golpe, sem ferramenta.
-  Fix de bug — antes eram colisão sólida sem `hit()`, e podiam (raramente)
-  fechar a única passagem de uma sala gerada, prendendo o jogador na run.
+  Fix de bug — antes eram colisão sólida sem `hit()`, e podiam travar
+  circulação em trechos da arena durante as ondas.
 
 ### Meta-sistemas
 - **Save** (`SaveManager`): JSON versionado em `user://save.json` — vida/
@@ -375,8 +386,9 @@ debug).
     station_display_name` — mesmo padrão de "chest.gd reusado pelo Baú e
     Baú Grande via export"). E abre o painel de craft do HUD já FILTRADO
     só pelas receitas daquela estação (`hud.gd::open_station_crafting`);
-    Workbench (sem receita própria) lista as estruturas que desbloqueia
-    como linhas informativas em vez de craftáveis. Groups deixaram de vir
+    Workbench (ajuste posterior na mesma linha de trabalho) lista
+    **Baú Grande/Poste de Luz** como ações de **construção** e inicia o
+    `BuildMode` focado nessas duas estruturas ao clicar. Groups deixaram de vir
     só do `.tscn` estático — o script agora chama `add_to_group
     (station_group)` no `_ready()`, pra não repetir o bug dos itens 14/
     esse mesmo (esquecer de atribuir o grupo na cena).
@@ -471,10 +483,10 @@ debug).
     C"). Os dois ganharam `required_upgrade_id = "constr_workbench"` (o
     MESMO upgrade que libera a própria Workbench) — reverte a decisão
     original do item "Função da Workbench" abaixo, que deixava os dois
-    sem upgrade de propósito. A listagem informativa de estruturas dentro
-    do painel de craft (`hud.gd::_build_structure_info_row`) foi REMOVIDA
-    por completo — Workbench agora mostra "Nada disponível aqui ainda."
-    ao apertar E, o que é esperado (ela nunca teve receita própria).
+    sem upgrade de propósito. Ajuste posterior: em vez de sumirem do
+    painel da Workbench, passaram a aparecer ali como botões de
+    **[construir]**, iniciando o `BuildMode` pela interação E e saindo da
+    lista geral do B.
 21. **Barra de vida + número de dano nos inimigos comuns** (jul/2026,
     pedido do usuário). `entities/enemy.gd` ganhou `_draw()` com barra de
     vida flutuante (mesma receita que o Boss já tinha sozinho em
@@ -504,7 +516,8 @@ debug).
     `SaveManager.wipe()`, achando que só reiniciava a run; o print vinha de
     ANTES de ele recomprar os upgrades no save resetado. Confirmado com
     save novo e print limpo: com só a Workbench comprada, Baú Grande e
-    Poste de Luz já aparecem como itens [7]/[8] da lista de construção.
+    Poste de Luz já aparecem na interação E da Workbench como opções de
+    construção (e não na lista geral do B).
     Diagnóstico dos prints mantido (gated por `OS.is_debug_build()`, não
     afeta build de release).
     Efeito colateral notado ao testar: ao liberar Forja/Mesa de
@@ -534,11 +547,13 @@ debug).
 
 ## Próximos passos (ordem recomendada)
 1. ~~Função da Workbench~~ — **RESOLVIDO** (jul/2026, decisão do usuário:
-   "Baú Grande + estruturas de conforto"). Workbench desbloqueia (via
-   `requires_workbench_nearby`, sem upgrade próprio) duas `StructureDef`
-   novas: **Baú Grande** (40 slots — `chest.gd::slot_count` virou
-   `@export`, era const fixa em 20) e **Poste de Luz** (mesma luz por ponto
-   da Tocha, alcance/energia maiores). Ver `docs/funcionalidades.md`.
+   "Baú Grande + estruturas de conforto"). Workbench usa o próprio E pra
+   listar/construir duas `StructureDef` (**Baú Grande** e **Poste de Luz**),
+   ambas com `required_upgrade_id = "constr_workbench"` e
+   `requires_workbench_nearby`; elas não aparecem no fluxo geral do B.
+   Baú Grande: 40 slots (`chest.gd::slot_count` virou `@export`, era const
+   fixa em 20). Poste de Luz: mesma luz por ponto da Tocha, alcance/energia
+   maiores. Ver `docs/funcionalidades.md`.
 2. ~~Função da Mesa de Pesquisa~~ — **RESOLVIDO** (jul/2026, mesmo padrão da
    Forja: `RecipeDef.required_station = "mesa_pesquisa"`, sem sistema
    novo). Duas receitas novas: **Lanterna Avançada** (consome 1 Lanterna,
@@ -570,10 +585,10 @@ debug).
    quantos tipos + o que cada um faz ANTES de implementar, e um stun
    inverso — inimigo atordoando o jogador via `GameState` — pro caso
    simétrico).
-5. **Portal de atalho** (branch Construção ou Magia — decidir): estrutura
-   de fast-travel entre regiões distantes do mesmo mundo. NÃO é o Talismã
-   (esse continua sendo a única entrada pra run) — é conveniência de
-   deslocamento, agora que já existe mais de uma região pra viajar entre.
+5. **Portal de atalho** — **EM PROGRESSO**: protótipo inicial já criado
+   (receita no C + estrutura persistente + teleporte portal↔portal na base).
+   Próximo passo: evolução para fast-travel entre regiões do mundo (não é
+   Talismã e não interfere no loop de run).
 6. **NPC resgatável + diretor de encontros v1** (T3 do plano): sala de NPC
    injetada na run por flag de quest, resgate → NPC na base com 1 serviço.
 7. Playtest externo de 30 min; depois seguir o `docs/plano-2-anos.md`.

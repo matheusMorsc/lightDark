@@ -29,11 +29,18 @@ extends CanvasLayer
 ## limite, então não trava mais, só "esconde" receitas excedentes).
 const RECIPE_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
 const HOTBAR_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
+const STRUCTURES_DIR := "res://items/structures"
+const CRAFT_STRUCTURE_SNAP := 8.0
+const CRAFT_STRUCTURE_OFFSETS := [
+	Vector2(0, 56), Vector2(48, 40), Vector2(-48, 40), Vector2(64, 8),
+	Vector2(-64, 8), Vector2(64, -28), Vector2(-64, -28), Vector2(0, -60),
+]
 
 var _restart_key_was_pressed: bool = false
 var _craft_menu_key_was_pressed: bool = false
 var _craft_slot_key_was_pressed: Array[bool] = []
 var _recipes: Array[RecipeDef] = []
+var _structure_defs_by_id: Dictionary = {}  # String -> StructureDef
 ## "" = painel de craft mostra TUDO (aberto via C). Senão, id do grupo de
 ## uma estação (ex. "forja") — só mostra receitas daquela estação, aberto
 ## via E ao interagir com ela (ver station_interact.gd,
@@ -109,6 +116,7 @@ func _ready() -> void:
 
 	_slot_nodes = slots_grid.get_children()
 	_chest_slot_nodes = chest_panel.get_node("VBox/SlotsGrid").get_children()
+	_index_structure_defs()
 	_build_recipe_rows()
 	_setup_hotbar()
 	_build_pause_menu()
@@ -427,6 +435,12 @@ func _try_craft(index: int) -> void:
 	if recipe.required_station != "" and not _near_station(recipe.required_station):
 		crafting_status_label.text = "Precisa estar perto da %s." % recipe.required_station_name
 		return
+	var place_result := {}
+	if recipe.build_structure_id != "":
+		place_result = _find_craft_structure_spot(recipe.build_structure_id)
+		if not bool(place_result.get("ok", false)):
+			crafting_status_label.text = String(place_result.get("reason", "Não foi possível construir agora."))
+			return
 	if GameState.craft(recipe.id, recipe.costs, recipe.result_id, recipe.result_count):
 		# bonus_max_health/heal_on_craft: caminho antigo, sem receita nenhuma
 		# usando mais (Amuleto Vital/II viraram itens PASSIVE reais em
@@ -440,7 +454,11 @@ func _try_craft(index: int) -> void:
 			GameState.heal(recipe.heal_on_craft)
 		if recipe.potion_channel != "":
 			GameState.apply_potion(recipe.potion_channel, recipe.potion_mult, recipe.potion_duration, recipe.display_name)
-		crafting_status_label.text = "Craftado: %s!" % recipe.display_name
+		if recipe.build_structure_id != "":
+			_spawn_crafted_structure(place_result.get("def") as StructureDef, place_result.get("pos", Vector2.ZERO))
+			crafting_status_label.text = "Construído: %s!" % recipe.display_name
+		else:
+			crafting_status_label.text = "Craftado: %s!" % recipe.display_name
 	else:
 		crafting_status_label.text = "Recursos insuficientes para %s." % recipe.display_name
 
@@ -596,6 +614,76 @@ func _try_workbench_build(def_id: String) -> void:
 		_close_crafting_panel()
 	else:
 		crafting_status_label.text = "Não foi possível iniciar construção agora."
+
+func _index_structure_defs() -> void:
+	_structure_defs_by_id.clear()
+	var dir := DirAccess.open(STRUCTURES_DIR)
+	if dir == null:
+		return
+	for file in dir.get_files():
+		if file.ends_with(".remap"):
+			file = file.trim_suffix(".remap")
+		if not file.ends_with(".tres"):
+			continue
+		var def := load(STRUCTURES_DIR + "/" + file) as StructureDef
+		if def != null and def.id != "":
+			_structure_defs_by_id[def.id] = def
+
+func _find_craft_structure_spot(def_id: String) -> Dictionary:
+	var def := _structure_defs_by_id.get(def_id, null) as StructureDef
+	if def == null or def.scene == null:
+		return {"ok": false, "reason": "Estrutura não encontrada para esta receita."}
+	if WorldLayers.in_run or WorldLayers.current_region_id != 1:
+		return {"ok": false, "reason": "Só dá para construir isso na base."}
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	if player == null:
+		return {"ok": false, "reason": "Jogador não encontrado."}
+	for offset: Vector2 in CRAFT_STRUCTURE_OFFSETS:
+		var raw_pos := player.global_position + offset
+		var pos := Vector2(snappedf(raw_pos.x, CRAFT_STRUCTURE_SNAP), snappedf(raw_pos.y, CRAFT_STRUCTURE_SNAP))
+		if def.requires_workbench_nearby and not _craft_workbench_nearby(pos):
+			continue
+		if _craft_space_free(pos):
+			return {"ok": true, "def": def, "pos": pos}
+	if def.requires_workbench_nearby:
+		return {"ok": false, "reason": "Sem espaço livre perto de uma Workbench."}
+	return {"ok": false, "reason": "Sem espaço livre para construir por perto."}
+
+func _craft_workbench_nearby(pos: Vector2) -> bool:
+	for n in get_tree().get_nodes_in_group("workbench"):
+		if n is Node2D and (n as Node2D).global_position.distance_to(pos) <= STATION_RANGE:
+			return true
+	return false
+
+func _craft_space_free(pos: Vector2) -> bool:
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	if player == null:
+		return false
+	var space := player.get_world_2d().direct_space_state
+	var params := PhysicsShapeQueryParameters2D.new()
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(18, 14)
+	params.shape = shape
+	params.transform = Transform2D(0.0, pos + Vector2(0, -4))
+	params.collide_with_bodies = true
+	return space.intersect_shape(params, 1).is_empty()
+
+func _spawn_crafted_structure(def: StructureDef, pos: Vector2) -> void:
+	if def == null or def.scene == null:
+		return
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	if player == null:
+		return
+	var entities := player.get_parent() as Node2D
+	if entities == null:
+		return
+	var node: Node2D = def.scene.instantiate()
+	entities.add_child(node)
+	node.global_position = pos
+	node.set_meta("structure_id", def.id)
+	node.add_to_group("player_built")
+	ObjectiveTracker.notify_built(def.id)
+	SaveManager.save_game()
 
 func _costs_text(costs: Dictionary) -> String:
 	var parts: PackedStringArray = []

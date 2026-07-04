@@ -248,7 +248,8 @@
   essências → item real, +25 vida máxima enquanto estiver no inventário),
   Amuleto Vital II (perto da Mesa de Pesquisa — 6 essências → item real,
   +40 vida máxima), 3 poções (perto da Mesa de Alquimia — ver "Estações
-  com função").
+  com função") e **Portal de Atalho** (8 essência — construído direto pelo C,
+  sem passar pelo modo B).
 - **Craft geral (C) só mostra o básico** (registrado jul/2026, a pedido do
   usuário): sem estação por perto (`required_station == ""`), o painel só
   lista Machado I, Picareta I, Lanterna e Refeição Reforçada — ferramentas
@@ -288,14 +289,12 @@
   reusado pelas 4 estações via `@export station_group/
   station_display_name` — Forja, Mesa de Pesquisa, Mesa de Alquimia E
   Workbench). Fechar é E de novo (ou C/ESC, que fecham qualquer variante
-  do painel). A Workbench não tem receita própria — apertar E nela mostra
-  "Nada disponível aqui ainda." mesmo, mensagem honesta em vez de erro.
-  Uma versão anterior listava as ESTRUTURAS que ela desbloqueia (Baú
-  Grande, Poste de Luz) como linhas informativas "(B constrói)" dentro
-  desse painel; **removida (jul/2026, pedido do usuário: "estrutura não
-  pode aparecer no C")** — estrutura só existe no modo B agora, nunca em
-  nenhuma tela de Crafting, pra não dar a impressão de que dá pra
-  "craftar" ali. Achado no processo:
+  do painel). **Workbench (ajuste jul/2026)**: o E nela lista **Baú Grande**
+  e **Poste de Luz** como ações de **construção** (`[construir]`) e, ao
+  clicar, já inicia o `BuildMode` focado nessas duas estruturas; o fluxo
+  geral do B não mostra mais essas duas opções. O painel da Workbench
+  também força refresh ao abrir, então upgrades recém-comprados já refletem
+  imediatamente na lista. Achado no processo:
   `alchemy_table.tscn` também não tinha grupo nenhum atribuído (mesmo bug
   do `research_table.tscn`, ver "Estações com função" abaixo) — corrigido
   junto.
@@ -307,11 +306,13 @@
   de verdade exigia estar perto delas. Primeiro passo pra mudar isso:
   **Forja** dá acesso a receitas próprias (`RecipeDef.
   required_station = "forja"`, ver "Crafting" acima): Machado II, Picareta
-  II e a Espada da Forja. **Workbench** (registrado jul/2026) segue um
-  padrão diferente — em vez de receitas, ela desbloqueia DUAS estruturas
-  novas (`StructureDef.requires_workbench_nearby`, sem exigir upgrade
-  próprio na árvore): **Baú Grande** (40 slots) e **Poste de Luz**
-  (alcance de luz bem maior que a Tocha) — ver detalhes nas seções
+  II e a Espada da Forja. **Workbench** (ajuste jul/2026) segue um padrão
+  diferente — o E nela abre uma lista de construção de DUAS estruturas
+  (`StructureDef.requires_workbench_nearby`,
+  `required_upgrade_id = "constr_workbench"`): **Baú Grande** (40 slots) e
+  **Poste de Luz** (alcance de luz bem maior que a Tocha). Essas duas ficam
+  fora da lista geral do B e são iniciadas pela própria interação da
+  Workbench — ver detalhes nas seções
   próprias abaixo. **Mesa de Pesquisa** (registrado jul/2026) volta ao
   padrão da Forja — receitas próprias (`required_station =
   "mesa_pesquisa"`): **Lanterna Avançada** (consome 1 Lanterna + 2
@@ -361,15 +362,19 @@
   verde/vermelho conforme validade (custo pago + dentro do alcance +
   espaço livre de colisão); clique esquerdo constrói e desconta os
   recursos na hora.
-- Estruturas hoje (`items/structures/*.tres`, tecla 1..N escolhe no modo B):
+- Estruturas hoje no **modo B geral** (`items/structures/*.tres`, tecla 1..N
+  escolhe no modo B):
   Cerca de Madeira (2 madeira), Fogueira (4 madeira + 2 pedra, ilumina),
   Tocha (1 madeira + 2 fibra, ilumina), **Baú** (6 madeira + 3 pedra,
   armazenamento), **Talismã** (8 madeira + 4 pedra, acesso à run),
   **Workbench** (8 madeira + 4 pedra), **Forja** (6 pedra + 4 minério),
   **Mesa de Alquimia** (6 madeira + 4 fibra), **Mesa de Pesquisa**
-  (8 madeira + 6 pedra), **Baú Grande** (12 madeira + 8 pedra + 3 minério,
-  perto da Workbench), **Poste de Luz** (4 madeira + 4 pedra + 2 fibra,
-  perto da Workbench).
+  (8 madeira + 6 pedra).
+- Estruturas da **Workbench (E)**: **Baú Grande** (12 madeira + 8 pedra + 3
+  minério) e **Poste de Luz** (4 madeira + 4 pedra + 2 fibra). Elas exigem
+  `required_upgrade_id = "constr_workbench"` + Workbench por perto e são
+  abertas/construídas pela interação E da Workbench (não entram na lista
+  geral do B).
 - Estrutura nova = só criar um `.tres` + uma cena — nenhum código muda.
 - **Estruturas desbloqueáveis**: `StructureDef.required_upgrade_id` (opcional)
   só deixa a estrutura aparecer no modo B depois de comprado o upgrade
@@ -380,31 +385,25 @@
 - **Estações avançadas perto da Workbench**: Forja, Mesa de Alquimia, Mesa
   de Pesquisa, Baú Grande e Poste de Luz só podem ser erguidas dentro de
   ~200px de uma Workbench já construída (`StructureDef.
-  requires_workbench_nearby`, checado no modo B junto com custo/alcance/
+  requires_workbench_nearby`, checado no `BuildMode` junto com custo/alcance/
   espaço — o ghost fica vermelho e o texto explica o motivo). Ferramentas
   (Machado, Picareta) continuam craftáveis de qualquer lugar pelo painel de
   craft (C) — só a CONSTRUÇÃO das estações avançadas exige a Workbench por
   perto, não o craft de itens.
-- **Baú Grande/Poste de Luz agora também exigem o upgrade da Workbench
-  pra APARECER na lista (corrigido jul/2026, reportado pelo usuário)**: a
-  decisão original (mesmo mês) era deixar os dois SEM `required_upgrade_id`
-  — apareciam na lista numerada do modo B desde o início do jogo, só
-  ficavam vermelhos/inválidos até existir uma Workbench de verdade por
-  perto. Na prática isso significava ver as duas estruturas no modo B antes
-  mesmo de ter comprado o upgrade da Workbench, o que confundia mais do que
-  ajudava. Agora os dois usam `required_upgrade_id = "constr_workbench"` —
-  o MESMO upgrade que libera a própria Workbench — então só aparecem
-  depois de comprado (igual Forja/Alquimia/Pesquisa), e continuam exigindo
-  a Workbench física por perto pra ficar verde/construível.
+- **Baú Grande/Poste de Luz exigem o upgrade da Workbench e saíram do B
+  geral** (ajuste jul/2026): os dois usam
+  `required_upgrade_id = "constr_workbench"` (mesmo upgrade da Workbench),
+  aparecem na interação E da Workbench e continuam exigindo a Workbench
+  física por perto pra ficar verde/construível.
 - **Seleção por clique, tecla 1..0 OU scroll do mouse** (registrado
   jul/2026): o painel do modo B virou clicável e scrollável, no mesmo
   estilo do painel de progressão (tecla U) — cada linha é um botão
   (`hud.gd::_build_row`) que chama `BuildMode.select_index(i)` direto,
   sem precisar saber qual tecla ou fazer scroll. Motivo: teclas físicas só
   cobrem até 10 (`BuildMode.BUILD_KEYS`, array explícito — antes o código
-  somava `KEY_1 + i` direto, que quebrava a partir do 10º item), e com 11+
-  estruturas (Baú Grande/Poste de Luz) sempre vai sobrar pelo menos uma
-  sem tecla. Tecla 1..0 e scroll (`BuildMode._unhandled_input`, mesmo
+  somava `KEY_1 + i` direto, que quebrava a partir do 10º item), e quando a
+  lista passar de 10 sempre vai sobrar pelo menos uma sem tecla. Tecla 1..0
+  e scroll (`BuildMode._unhandled_input`, mesmo
   padrão da hotbar) continuam funcionando também — o clique é só mais uma
   forma, não substitui as outras. O painel fica na borda esquerda (não
   centralizado como o de progressão) de propósito: o jogador precisa
@@ -513,8 +512,10 @@
   20) — o Baú Grande é só uma segunda cena (`chest_grande.tscn`) com
   `slot_count = 40`, sprite maior/tingido de escuro pra diferenciar do baú
   normal sem depender de arte nova. Só pode ser construído perto de uma
-  Workbench (`requires_workbench_nearby`, 12 madeira + 8 pedra + 3
-  minério). O painel do baú no HUD ganhou 40 slots fixos (antes 20) pra
+  Workbench (`required_upgrade_id = "constr_workbench"` +
+  `requires_workbench_nearby`, 12 madeira + 8 pedra + 3 minério). O painel
+  da Workbench (E) lista essa construção diretamente; o B geral não lista.
+  O painel do baú no HUD ganhou 40 slots fixos (antes 20) pra
   caber os dois tamanhos — um baú normal só usa os primeiros 20 e os
   demais ficam escondidos (`hud.gd::_update_chest_panel`, agora esconde
   slots além da capacidade do baú aberto em vez de só "não atualizar").
@@ -522,7 +523,8 @@
 ## Poste de Luz (registrado jul/2026, função da Workbench)
 
 - Segunda estrutura desbloqueada pela Workbench (`requires_workbench_nearby`,
-  4 madeira + 4 pedra + 2 fibra): mesma luz por ponto (`LitPointLight2D`) da
+  `required_upgrade_id = "constr_workbench"`, 4 madeira + 4 pedra + 2
+  fibra): mesma luz por ponto (`LitPointLight2D`) da
   Tocha, mas alcance/energia maiores (raio 175 contra 110, energia 1.3) —
   cobre uma área boa da base sem precisar espalhar várias tochas. Reaproveita
   a mesma textura da Tocha (`floor_torch.png`) com escala maior e tingida
@@ -537,11 +539,17 @@
 - **Dentro da run não existe saída voluntária**: só se sai ganhando
   (derrotar o boss abre um portal de saída) ou morrendo (morte continua
   leve — ver acima).
-- Geração procedural por mapa: "drunkard walk" numa grade de salas (6 a 11
-  salas, cresce com a profundidade), conectadas em árvore — só existe UM
-  caminho entre o spawn e o fim, sem bifurcação real. Corredores em L de 3
-  tiles de largura. Uma trilha de tiles mais claros marca visualmente o
-  caminho até o fim.
+- **Portal de Atalho (superfície, protótipo)**: receita no C (8 essência)
+  que constrói um portal perto do jogador na base (`RecipeDef.
+  build_structure_id = "portal_atalho"`). Dois portais formam um par de
+  teleporte curto via F (só o mais próximo responde, mesmo padrão de
+  interação das outras estruturas), com recarga curta pra evitar ping-pong.
+  Não funciona durante run e não substitui o Talismã (run) nem os portais de
+  escolha dentro da run.
+- Formato atual por mapa: **sala de combate única** (arena), sem corredores.
+  Em mapas normais, a sala começa com uma leva de **3–5 inimigos** e novas
+  levas continuam surgindo até fechar um total de **25–30 inimigos** no
+  mapa. Só depois da última leva os portais de escolha aparecem.
 - Conteúdo escala com a profundidade (`map_index`) e com o **viés**
   escolhido no portal anterior: minério (mais veios), combate (mais
   inimigos + chance de elite), suprimentos (mais props).
@@ -558,8 +566,8 @@
   fora de run — todo getter (`get_enemy_speed_mult()` etc.) já tem
   fallback neutro, ninguém precisa checar null na mão.
 - Props do dungeon (caixote, barril, pote, entulho de pedra, saco) são
-  **quebráveis em 1 golpe sem ferramenta** — nunca fecham permanentemente
-  a única passagem de uma sala gerada (fix de bug real).
+  **quebráveis em 1 golpe sem ferramenta** — isso evita travar movimentação
+  durante a luta em salas mais cheias.
 - A cada 3 mapas, a sala final vira arena de boss: graybox com investida
   telegrafada (dash) e pancada em área telegrafada, +40% de força a cada
   ciclo completado. Vitória → dropa essência + abre portal de saída.

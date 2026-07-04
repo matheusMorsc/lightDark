@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RecipeDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://items/recipe_def.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/craftpix_dungeon_kit/tileset/objects/trapdoors/2.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "portal_atalho"
+display_name = "Portal de Atalho"
+costs = {
+"essencia": 8
+}
+result_id = ""
+result_count = 1
+icon = ExtResource("2")
+sort_order = 16
+build_structure_id = "portal_atalho"

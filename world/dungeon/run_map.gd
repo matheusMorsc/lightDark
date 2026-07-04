@@ -1,17 +1,22 @@
 extends Node2D
-## Mapa de run gerado proceduralmente (v1 — T1 do plano).
-## Algoritmo: "drunkard walk" numa grade de slots de sala → sala retangular
-## por slot → corredores em L pelas arestas → paredes com colisão via tiles.
-## O mapa termina na sala mais distante com 2–3 PORTAIS DE ESCOLHA (estilo
-## Hades): cada um anuncia o viés de recompensa do próximo mapa.
-## reward_bias (escolhido no portal anterior) altera o conteúdo DESTE mapa.
-## Determinístico por rng_seed (setado pelo WorldLayers antes do add_child).
+## Mapa de run em formato de SALA de combate (inspirado no loop de Hades):
+## uma arena única por mapa, sem corredores. Em mapas normais, o encontro
+## começa com uma leva de 3–5 inimigos e segue em novas levas até totalizar
+## 25–30 eliminados; só então os portais de escolha aparecem.
+## reward_bias (escolhido no portal anterior) afeta a composição/perigo da
+## sala atual. Determinístico por rng_seed (setado pelo WorldLayers).
 
 ## A cada N mapas, a sala final vira arena de boss (fim do ciclo da run).
 const BOSS_EVERY := 3
 
-const SLOT_W := 16   # tamanho do slot de sala, em tiles
-const SLOT_H := 12
+const ARENA_W := 42  # largura interna da arena, em tiles
+const ARENA_H := 28  # altura interna da arena, em tiles
+const WAVE_MIN := 3
+const WAVE_MAX := 5
+const ENCOUNTER_TOTAL_MIN := 25
+const ENCOUNTER_TOTAL_MAX := 30
+const WAVE_DELAY := 0.85
+const SAFE_RADIUS_FROM_SPAWN := 190.0
 
 const FLOOR_TILES: Array[Vector2i] = [
 	Vector2i(2, 2), Vector2i(3, 2), Vector2i(4, 2),
@@ -19,10 +24,6 @@ const FLOOR_TILES: Array[Vector2i] = [
 	Vector2i(2, 4), Vector2i(3, 4), Vector2i(4, 4),
 ]
 const RARE_FLOOR := Vector2i(9, 3)
-## Tiles claros da "trilha" que guia o jogador do spawn até a sala final.
-const ROAD_TILES: Array[Vector2i] = [
-	Vector2i(15, 6), Vector2i(16, 6), Vector2i(17, 6), Vector2i(16, 7),
-]
 const WALL_TILE := Vector2i(16, 2)
 
 const ENEMY := preload("res://entities/enemy.tscn")
@@ -48,6 +49,14 @@ var rng_seed: int = 0
 var reward_bias: String = "nenhum"
 ## Posição global onde o player aparece (calculada na geração).
 var spawn_position: Vector2
+var _rng := RandomNumberGenerator.new()
+var _arena_rect := Rect2i()
+var _portal_center := Vector2i.ZERO
+var _encounter_target := 0
+var _encounter_spawned := 0
+var _encounter_alive := 0
+var _encounter_active := false
+var _elite_chance := 0.0
 
 @onready var floor_layer: TileMapLayer = $FloorLayer
 @onready var wall_layer: TileMapLayer = $WallLayer
@@ -57,141 +66,68 @@ func _ready() -> void:
 	_generate()
 
 func _generate() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = rng_seed
+	_rng.seed = rng_seed
 
-	# 1. Passeio aleatório na grade de slots: quais salas existem e quem é
-	#    vizinho de quem (as arestas garantem conectividade total).
-	var order: Array[Vector2i] = [Vector2i.ZERO]
-	var edges: Array = []
-	var occupied := {Vector2i.ZERO: true}
-	var cur := Vector2i.ZERO
-	var dirs := [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]
-	var target: int = clampi(5 + map_index, 6, 11)
-	var guard := 0
-	while order.size() < target and guard < 500:
-		guard += 1
-		var next: Vector2i = cur + dirs[rng.randi() % 4]
-		if not occupied.has(next):
-			occupied[next] = true
-			order.append(next)
-			edges.append([cur, next])
-		cur = next
+	# 1) Sala única (arena): chão interno + anel de parede ao redor.
+	_arena_rect = Rect2i(-ARENA_W / 2, -ARENA_H / 2, ARENA_W, ARENA_H)
+	for x in range(_arena_rect.position.x, _arena_rect.end.x):
+		for y in range(_arena_rect.position.y, _arena_rect.end.y):
+			var c := Vector2i(x, y)
+			var atlas := RARE_FLOOR if _rng.randf() < 0.08 else FLOOR_TILES[_rng.randi() % FLOOR_TILES.size()]
+			floor_layer.set_cell(c, 0, atlas)
+	for x in range(_arena_rect.position.x - 1, _arena_rect.end.x + 1):
+		wall_layer.set_cell(Vector2i(x, _arena_rect.position.y - 1), 0, WALL_TILE)
+		wall_layer.set_cell(Vector2i(x, _arena_rect.end.y), 0, WALL_TILE)
+	for y in range(_arena_rect.position.y - 1, _arena_rect.end.y + 1):
+		wall_layer.set_cell(Vector2i(_arena_rect.position.x - 1, y), 0, WALL_TILE)
+		wall_layer.set_cell(Vector2i(_arena_rect.end.x, y), 0, WALL_TILE)
 
-	# 2. Uma sala retangular por slot.
-	var floor_cells := {}
-	var centers := {}
-	var rects := {}
-	for slot: Vector2i in order:
-		var w := rng.randi_range(8, SLOT_W - 4)
-		var h := rng.randi_range(6, SLOT_H - 4)
-		var ox := slot.x * SLOT_W + (SLOT_W - w) / 2
-		var oy := slot.y * SLOT_H + (SLOT_H - h) / 2
-		for x in range(ox, ox + w):
-			for y in range(oy, oy + h):
-				floor_cells[Vector2i(x, y)] = true
-		centers[slot] = Vector2i(ox + w / 2, oy + h / 2)
-		rects[slot] = Rect2i(ox, oy, w, h)
+	# 2) Spawn do player na base da sala; centro guarda o ponto de portais.
+	var center := Vector2i.ZERO
+	_portal_center = center
+	spawn_position = _cell_pos(Vector2i(center.x, _arena_rect.end.y - 4)) + Vector2(0, 18)
 
-	# 3. Corredores em L (3 tiles de largura) entre salas conectadas,
-	#    lembrando quais células pertencem a cada corredor (p/ a trilha).
-	var corridor_cells := {}
-	for e in edges:
-		var a: Vector2i = centers[e[0]]
-		var b: Vector2i = centers[e[1]]
-		var cells: Array = []
-		for x in range(mini(a.x, b.x), maxi(a.x, b.x) + 1):
-			for off in range(-1, 2):
-				var c := Vector2i(x, a.y + off)
-				floor_cells[c] = true
-				cells.append(c)
-		for y in range(mini(a.y, b.y), maxi(a.y, b.y) + 1):
-			for off in range(-1, 2):
-				var c := Vector2i(b.x + off, y)
-				floor_cells[c] = true
-				cells.append(c)
-		corridor_cells[_edge_key(e[0], e[1])] = cells
-
-	# 4. Pinta o chão e levanta parede em toda célula vazia encostada nele.
-	for c: Vector2i in floor_cells:
-		var atlas: Vector2i
-		if rng.randf() < 0.08:
-			atlas = RARE_FLOOR
-		else:
-			atlas = FLOOR_TILES[rng.randi() % FLOOR_TILES.size()]
-		floor_layer.set_cell(c, 0, atlas)
-	for c: Vector2i in floor_cells:
-		for dx in range(-1, 2):
-			for dy in range(-1, 2):
-				var n: Vector2i = c + Vector2i(dx, dy)
-				if not floor_cells.has(n) and wall_layer.get_cell_source_id(n) == -1:
-					wall_layer.set_cell(n, 0, WALL_TILE)
-
-	# 4b. Trilha: as arestas do passeio formam uma árvore, então o caminho
-	#     spawn → sala final é único. Pinta os corredores dele com tiles
-	#     claros — a "estrada" que o jogador segue até os portais/boss.
-	var parent := {}
-	for e in edges:
-		parent[e[1]] = e[0]
-	var walk: Vector2i = order[order.size() - 1]
-	while parent.has(walk):
-		var key := _edge_key(parent[walk], walk)
-		for c: Vector2i in corridor_cells.get(key, []):
-			floor_layer.set_cell(c, 0, ROAD_TILES[rng.randi() % ROAD_TILES.size()])
-		walk = parent[walk]
-
-	# 5. Multiplicadores do viés de recompensa deste mapa.
+	# 3) Viés do mapa atual (o portal escolhido no mapa anterior) + modificador.
 	var ore_min := 1
 	var ore_max := 2
-	var prop_min := 1
-	var prop_max := 3
-	var extra_enemies := 0
-	var elite_chance := 0.0
+	var prop_min := 2
+	var prop_max := 4
+	var elite_base := 0.08
 	match reward_bias:
 		"minerio":
-			ore_min = 3; ore_max = 4
+			ore_min = 4
+			ore_max = 6
 		"combate":
-			extra_enemies = 2; elite_chance = 0.35; prop_max = 4
+			elite_base = 0.22
+			prop_max = 5
 		"suprimentos":
-			prop_min = 4; prop_max = 6
-
-	# 5b. Modificador da run inteira (sorteado uma vez em WorldLayers.
-	#     _do_start_run — ver RunModifierDef), em cima do viés do mapa.
-	elite_chance = clampf(elite_chance + WorldLayers.get_elite_chance_bonus(), 0.0, 1.0)
+			prop_min = 5
+			prop_max = 7
+	_elite_chance = clampf(elite_base + WorldLayers.get_elite_chance_bonus(), 0.0, 0.9)
 	var ore_mult := WorldLayers.get_ore_yield_mult()
 	if ore_mult != 1.0:
 		ore_min = maxi(1, ceili(ore_min * ore_mult))
 		ore_max = maxi(ore_min, ceili(ore_max * ore_mult))
 
-	# 6. Conteúdo: spawn na sala inicial, portais de escolha na mais distante,
-	#    inimigos/props/minério nas demais (risco cresce com map_index).
-	var start: Vector2i = order[0]
-	var far: Vector2i = order[order.size() - 1]
-	spawn_position = _cell_pos(centers[start]) + Vector2(0, 24)
+	# 4) Decoração/recurso da sala (mantém leitura de reward_bias sem quebrar
+	#    o foco em combate por ondas).
+	for _i in _rng.randi_range(prop_min, prop_max):
+		_spawn(PROPS[_rng.randi() % PROPS.size()], _rand_cell(_rng, _arena_rect))
+	for _i in _rng.randi_range(ore_min, ore_max):
+		_spawn(ORE, _rand_cell(_rng, _arena_rect))
+	_spawn(TORCH, _cell_pos(Vector2i(_arena_rect.position.x + 2, _arena_rect.position.y + 2)))
+	_spawn(TORCH, _cell_pos(Vector2i(_arena_rect.end.x - 3, _arena_rect.position.y + 2)))
+
+	# 5) Encontro: mapa de boss segue no ciclo, mapa comum usa levas até 25–30.
 	var boss_map := map_index % BOSS_EVERY == 0
 	if boss_map:
-		_spawn_boss(centers[far])
-	else:
-		_spawn_portals(rng, centers[far])
-
-	for i in range(1, order.size()):
-		var slot: Vector2i = order[i]
-		var r: Rect2i = rects[slot]
-		var n_enemies := rng.randi_range(1, 1 + mini(map_index, 3))
-		if slot == far:
-			if boss_map:
-				continue  # arena do boss fica limpa: só o duelo
-			n_enemies = maxi(1, n_enemies - 1)  # sala dos portais mais leve
-		else:
-			n_enemies += extra_enemies if rng.randf() < 0.6 else 0
-		for j in n_enemies:
-			_spawn_enemy(rng, r, rng.randf() < elite_chance)
-		for j in rng.randi_range(prop_min, prop_max):
-			_spawn(PROPS[rng.randi() % PROPS.size()], _rand_cell(rng, r))
-		for j in rng.randi_range(ore_min, ore_max):
-			_spawn(ORE, _rand_cell(rng, r))
-		if rng.randf() < 0.6:
-			_spawn(TORCH, _cell_pos(Vector2i(r.position.x + 1, r.position.y + 1)))
+		_spawn_boss(center)
+		return
+	_encounter_target = _rng.randi_range(ENCOUNTER_TOTAL_MIN, ENCOUNTER_TOTAL_MAX)
+	_encounter_spawned = 0
+	_encounter_alive = 0
+	_encounter_active = true
+	_spawn_next_wave()
 
 ## Arena de boss: spawna o boss escalado pelo ciclo; ao vencer, recompensa
 ## em essência + portal de saída no lugar da queda.
@@ -210,6 +146,42 @@ func _on_boss_defeated(cell: Vector2i) -> void:
 	p.is_exit = true
 	entities.add_child(p)
 	p.global_position = _cell_pos(cell)
+
+## Encontro de sala normal: spawna uma leva (3–5) e repete até bater a meta
+## total (25–30). Portais só aparecem ao limpar a última leva.
+func _spawn_next_wave() -> void:
+	if not _encounter_active:
+		return
+	var remaining := _encounter_target - _encounter_spawned
+	if remaining <= 0:
+		return
+	var wave_size := mini(_rng.randi_range(WAVE_MIN, WAVE_MAX), remaining)
+	var spawned_now := 0
+	var attempts := 0
+	while spawned_now < wave_size and attempts < 60:
+		attempts += 1
+		if _spawn_enemy(_rng, _arena_rect, _rng.randf() < _elite_chance):
+			spawned_now += 1
+			_encounter_spawned += 1
+			_encounter_alive += 1
+	if _encounter_alive <= 0 and _encounter_spawned >= _encounter_target:
+		_encounter_active = false
+		_spawn_portals(_rng, _portal_center)
+
+func _on_wave_enemy_exited() -> void:
+	if not _encounter_active:
+		return
+	_encounter_alive = maxi(0, _encounter_alive - 1)
+	if _encounter_alive > 0:
+		return
+	if _encounter_spawned >= _encounter_target:
+		_encounter_active = false
+		_spawn_portals(_rng, _portal_center)
+		return
+	await get_tree().create_timer(WAVE_DELAY).timeout
+	if not is_inside_tree() or not _encounter_active:
+		return
+	_spawn_next_wave()
 
 ## 2–3 portais lado a lado, cada um com um viés diferente (escolha do jogador).
 func _spawn_portals(rng: RandomNumberGenerator, center: Vector2i) -> void:
@@ -230,9 +202,6 @@ func _spawn_portals(rng: RandomNumberGenerator, center: Vector2i) -> void:
 		p.reward = kinds[i]
 		entities.add_child(p)
 		p.global_position = _cell_pos(cell)
-
-func _edge_key(a: Vector2i, b: Vector2i) -> String:
-	return "%s|%s" % [a, b]
 
 func _spawn(scene: PackedScene, pos: Vector2) -> Node2D:
 	var n: Node2D = scene.instantiate()
@@ -268,10 +237,10 @@ const ELITE_TINT := Color(1.0, 0.55, 0.55)
 
 ## Inimigos mais fortes quanto mais fundo na run; elites são versões
 ## reforçadas com 2 afixos reais sorteados (não é mais só stat x1.8).
-func _spawn_enemy(rng: RandomNumberGenerator, r: Rect2i, elite: bool) -> void:
+func _spawn_enemy(rng: RandomNumberGenerator, r: Rect2i, elite: bool) -> bool:
 	var pos := _rand_cell(rng, r)
-	if pos.distance_to(spawn_position) < 190.0:
-		return  # zona segura: ninguém spawna colado na entrada do mapa
+	if pos.distance_to(spawn_position) < SAFE_RADIUS_FROM_SPAWN:
+		return false  # zona segura: ninguém spawna colado na entrada do mapa
 	var scene := _pick_enemy_scene(rng)
 	var e := scene.instantiate()
 	var health_mult := 1.0 + 0.2 * (map_index - 1)
@@ -293,6 +262,9 @@ func _spawn_enemy(rng: RandomNumberGenerator, r: Rect2i, elite: bool) -> void:
 			spr.modulate = ELITE_TINT
 			spr.scale *= 1.25
 	e.global_position = pos
+	if _encounter_active:
+		e.tree_exited.connect(_on_wave_enemy_exited, CONNECT_ONE_SHOT)
+	return true
 
 ## Sorteia 2 afixos distintos de ELITE_AFFIXES (Fisher-Yates parcial com o
 ## rng da seed, mesmo motivo do shuffle manual em _spawn_portals).

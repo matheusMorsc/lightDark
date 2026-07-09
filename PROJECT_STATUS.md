@@ -96,7 +96,7 @@ debug).
   ~56% e receberam mais pontos de luz na arena (tochas extras) para melhorar
   leitura sem perder o clima escuro. Fundo preto via `default_clear_color`.
 - **Ciclo de dia/noite v1 (Sprint 1, jul/2026):** `WorldLayers` agora
-  controla um relógio global da superfície (**2 min por ciclo em modo de
+  controla um relógio global da superfície (**1 min por ciclo em modo de
   teste**, persistido no save) e reaplica o `LitCanvasModulate` da região
   ativa conforme a fase (`dia`, `entardecer`, `noite`, `amanhecer`). Runs
   congelam o horário.
@@ -106,7 +106,8 @@ debug).
   não entram. Ao amanhecer, esses extras são removidos.
 - **Marcador da zona segura da base:** `world/base_safe_radius_marker.gd`
   desenha um anel/círculo pulsante no chão da base, centrado em
-  `home_position`, para visualizar o alcance do efeito seguro noturno.
+  `home_position`, para visualizar o alcance do efeito seguro noturno. Raio
+  de teste atual reduzido para `BASE_SAFE_RADIUS = 280`.
 
 ### Regiões (multi-região)
 - `WorldLayers` gerencia N regiões via `RegionDef` (.tres em
@@ -589,7 +590,7 @@ debug).
     expandido revela títulos e valores.
 28. **Sprint 1 do ciclo de dia/noite**
     (jul/2026): `autoload/world_layers.gd` ganhou relógio global da
-    superfície (`_time_of_day_ratio`, 2 minutos por ciclo em teste), fases nomeadas
+    superfície (`_time_of_day_ratio`, 1 minuto por ciclo em teste), fases nomeadas
     (`dia`, `entardecer`, `noite`, `amanhecer`), sinais públicos
     (`day_phase_changed`, `time_of_day_changed`) e persistência via
     `save_manager.gd`. O `LitCanvasModulate` de cada região usa sua cor-base

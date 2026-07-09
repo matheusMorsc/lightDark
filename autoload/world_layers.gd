@@ -40,7 +40,7 @@ const RUN_OFFSET := Vector2(0, 1000000)
 const REGIONS_DIR := "res://world/regions"
 const MODIFIERS_DIR := "res://world/dungeon/modifiers"
 
-const DAY_NIGHT_CYCLE_SECONDS := 120.0
+const DAY_NIGHT_CYCLE_SECONDS := 60.0
 const DAY_END := 0.50
 const DUSK_END := 0.65
 const NIGHT_END := 0.90
@@ -52,7 +52,7 @@ const NIGHT_ENEMY_CAP := 12
 const NIGHT_SPAWN_BATCH := 2
 const NIGHT_SPAWN_MIN_DISTANCE := 260.0
 const NIGHT_SPAWN_MAX_DISTANCE := 420.0
-const BASE_SAFE_RADIUS := 420.0
+const BASE_SAFE_RADIUS := 280.0
 const NIGHT_ENEMY_GROUP := "night_surface_enemy"
 const BASE_SAFE_RADIUS_MARKER_NAME := "BaseSafeRadiusMarker"
 const NIGHT_SCENE_POOL: Array[PackedScene] = [SURFACE_ENEMY, SURFACE_ENEMY_FAST]

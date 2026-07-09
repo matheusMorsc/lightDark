@@ -498,7 +498,7 @@
   região ativa).
 - **Sprint 1 do ciclo de dia/noite** (registrado jul/2026): `WorldLayers`
   agora roda um relógio global só na superfície (runs congelam o horário).
-  O ciclo completo está configurado em **2 minutos para teste** e passa por
+  O ciclo completo está configurado em **1 minuto para teste** e passa por
   **dia → entardecer → noite → amanhecer**. O horário atual persiste no save
   (`SaveManager` grava `time_of_day_ratio`).
 - **Ambiente da superfície responde ao horário**: o `LitCanvasModulate` da
@@ -517,6 +517,7 @@
   a base agora mostra um círculo pulsante fraco no chão indicando até onde
   vai o raio seguro contra spawn noturno. Serve para calibrar o sistema de
   pressão antes de decidir se esse indicador fica permanente ou vira debug.
+  No ajuste atual de teste, o raio seguro foi reduzido para **280**.
 
 ## Baú de armazenamento
 
